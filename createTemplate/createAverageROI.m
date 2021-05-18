@@ -31,7 +31,7 @@ for ff=1:length(listFiles)
         for rr=1:length(listROIs)
             clear indexROI
             indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
-            roiMap(:,rr,aa) = mean(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
+            roiMap(:,rr,aa) = sum(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
         end
     end
 end
@@ -84,22 +84,20 @@ end
 
 % average the roiMap accross sbj
 % avMap.activity = mean(roiMap,3);
-avMap.mean = mean(roiMapMean,3);
-avMap.sum = mean(roiMapSum,3);
-avMap.roiNames = listROIs;
-save('averageMap50Sum.mat','avMap','listROIs')
-
+avMap = mean(roiMapSum,3);
 figure('position', [200, 0, 1500, 800])
 for roi=1:18
     subplot(3,6,roi)
     title(listROIs(roi))
-    plotContourOnScalp(avMap.mean(:,roi),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+    plotContourOnScalp(avMap(:,roi),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
     view(20,35)
     camproj('perspective')
     axis off
 end
 saveas(gcf,'averageMap50','png')
-save('averageMap50SumMean.mat','avMap','listROIs')
+save('averageMap50Sum.mat','avMap','listROIs')
+avMap= mean(roiMapMean,3);
+save('averageMap50Mean.mat','avMap','listROIs')
 
 figure('position', [200, 0, 1500, 800])
 for roi=1:18

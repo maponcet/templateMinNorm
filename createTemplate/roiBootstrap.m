@@ -1,9 +1,12 @@
 %%%%% ROI template bootstrap with replacement for increasing nb of max sbj
+
+
+
 clearvars;
 listFiles = dir('/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/forward*');
-load('averageMap50.mat')
-nbBoot = 1000;
-rmseROI = zeros(nbBoot,length(listFiles),size(avMap.activity,2));
+load('averageMap50Sum.mat')
+nbBoot = 10;
+percErr = zeros(nbBoot,length(listFiles),size(avMap,2));
 
 for maxSbj = 1:length(listFiles)
     for bb=1:nbBoot
@@ -11,37 +14,29 @@ for maxSbj = 1:length(listFiles)
             fprintf('maxSbj%d boostrap%d \n' ,maxSbj,bb)
         end
         
-        % pick randomly maxSbj sbj with replacement
+        % pick randomly sbj with replacement
         pickSS = randi(length(listFiles),1,maxSbj);
-        roiMap = zeros(size(avMap.activity,1),size(avMap.activity,2),length(pickSS));
+        roiMap = zeros(size(avMap,1),size(avMap,2),length(pickSS));
         
         for iSubj = 1:length(pickSS)
             clear fwdMatrix roiInfo
             load([listFiles(pickSS(iSubj)).folder filesep listFiles(pickSS(iSubj)).name])
             % go through each ROI and average all the mesh indexes corresponding to that ROI
-            for rr=1:length(avMap.roiNames)
+            for rr=1:length(listROIs)
                 clear indexROI
-                indexROI = find(strcmp(avMap.roiNames(rr),{roiInfo.name}));
-                roiMap(:,rr,iSubj) = mean(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
+                indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
+                roiMap(:,rr,iSubj) = sum(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
             end
             
         end
-        rmseROI(bb,maxSbj,:) =  rms(mean(roiMap,3) - avMap.activity);
+        percErr(bb,maxSbj,:) =  (mean(roiMap,3) - avMap)^2 / avMap^2 ;
     end
 end
-listROIs = avMap.roiNames;
-save roiBootstrapFromfwd.mat rmseROI listROIs
+save roiBootstrapFromfwd.mat percErr listROIs
 
 %%%%%%%%%%%%%%%%%%%%%%%
-% rmse: boot, sbj, roi
-% compute %error: rmse/rms(avMap.activity)
+% percErr: boot, sbj, roi
 load('roiBootstrapFromfwd.mat')
-load('averageMap50.mat')
-prctError=zeros(size(rmseROI));
-for bb=1:size(rmseROI,1)
-    prctError(bb,:,:) = squeeze(rmseROI(bb,:,:))./rms(avMap.activity)*100;
-end
-% plot rmse/rms
 
 figure;hold on;
 set(gcf,'position',[100,100,1500,700])
