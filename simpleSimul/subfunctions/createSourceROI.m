@@ -1,4 +1,4 @@
-function [sourceAmplitude, sourceERP] = createSourceROI(numROIs,diffSource,sameSource)
+function [sourceAmplitude, sourceSSVEP, sourceERP] = createSourceROI(numROIs,diffSource,sameSource)
 % for each diffSource, generate a random amplitude activity
 % (sourceAmplitude) and a timecourse over 90 points (sourceERP) 
 
@@ -13,6 +13,7 @@ x = 0 : pi / 45 : 2 * pi-pi/45;
 % initialise variable
 sourceAmplitude = zeros(numROIs,1);
 sourceERP = zeros(numROIs, length(x) );
+sourceSSVEP = zeros(numROIs, length(x) );
 
 if ~isempty(sameSource)
     if length(diffSource)~=length(sameSource)
@@ -32,8 +33,10 @@ for k = 1 : length(diffSource)
     % create ERP waveform
     yERP = y.*gaussmf(x,[pi/4 pi]);
     % multiply waveform by the source amplitude (ROIxtime)
+    sourceSSVEP( diffSource(k) , : )  = y * sourceAmplitude(diffSource(k));
     sourceERP( diffSource(k) , : )  = yERP * sourceAmplitude(diffSource(k));
     if ~isempty(sameSource)
+        sourceSSVEP( sameSource(k) , : )  = y * sourceAmplitude(diffSource(k));
         sourceERP( sameSource(k) , : )  = yERP * sourceAmplitude(diffSource(k));
         sourceAmplitude( sameSource(k) , : )  = sourceAmplitude(diffSource(k));
     end

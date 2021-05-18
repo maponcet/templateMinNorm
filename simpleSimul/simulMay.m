@@ -25,19 +25,20 @@ activeROIs = [sourceL,sourceR]; % left sources then right sources to make it eas
 % find the ROI index corresponding to the activeROIs
 ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
 
-nbSbjToInclude =[1 2 4 8 16 25 32 50];
-totBoot = 20; % nb of bootstrap
+% nbSbjToInclude =[1 2 5 10 20 30 40 50];
+nbSbjToInclude =[1 5 10 30 50];
+totBoot = 10; % nb of bootstrap
 
 % initialise variables
-aucMinNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-aucGpMinNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-aucMinNormInd = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-energyMinNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-energyGpNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-energyMinNormInd = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-mseMinNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-mseGpNorm = zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
-mseMinNormInd= zeros(totBoot,length(nbSbjToInclude),length(activeROIs));
+aucAve = zeros(totBoot,length(nbSbjToInclude));
+aucWhole = zeros(totBoot,length(nbSbjToInclude));
+aucROI = zeros(totBoot,length(nbSbjToInclude));
+energyAve = zeros(totBoot,length(nbSbjToInclude));
+energyWhole = zeros(totBoot,length(nbSbjToInclude));
+energyROI = zeros(totBoot,length(nbSbjToInclude));
+mseAve = zeros(totBoot,length(nbSbjToInclude));
+mseWhole = zeros(totBoot,length(nbSbjToInclude));
+mseROI= zeros(totBoot,length(nbSbjToInclude));
 
 
 for totSbj=1:length(nbSbjToInclude)
@@ -45,7 +46,6 @@ for totSbj=1:length(nbSbjToInclude)
     
     for repBoot =1:totBoot
         fprintf('sbj%d bootstrap %d \n',numSubs,repBoot);
-        clear Y Ylo Yerp YloERP
         
         % list of random sbj with replacement
         listSub = randi(length(dirList),numSubs,1);
@@ -72,15 +72,20 @@ for totSbj=1:length(nbSbjToInclude)
         %% Simulate sources (sourceERP)
         % amplitude and time function is different for each source but
         % the same for all sbj for a given bootstrap
-        [sourceAmplitude, sourceERP] = createSourceROI(numROIs,ac_sources(1:length(ac_sources)/2),ac_sources((length(ac_sources)/2+1):end));
+        [srcAmp, srcSSVEP, srcERP] = createSourceROI(numROIs,ac_sources(1:length(ac_sources)/2),ac_sources((length(ac_sources)/2+1):end));
         
         %% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj 
         % (using individual fwd model)
-        Y = zeros(numSubs,size(fullFwd{1},1),length(sourceERP));
+        Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y_SSVEP = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Ylo = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y_SSVEPlo = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        
         for iSub=1:numSubs
             % initialise matrix of source activity
-            sourceData = zeros(size(fullFwd{iSub},2) , length(sourceERP));
+            sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
+            sourceDataSSVEP = zeros(size(fullFwd{iSub},2) , length(srcSSVEP));
             if length([idxROIfwd{iSub,ac_sources}]) ~= length(unique([idxROIfwd{iSub,ac_sources}]))
                 fprintf('Overlapping source indexes S%d \n',listSub(iSub));
             end
@@ -88,31 +93,26 @@ for totSbj=1:length(nbSbjToInclude)
                 % note that if there is overlapping index (same idx for 2
                 % ROIs), the value in sourceData will be of the latest
                 % source
-                sourceData(idxROIfwd{iSub,ac_sources(ss)},:) = repmat(sourceERP(ac_sources(ss),:),length(idxROIfwd{iSub,ac_sources(ss)}),1);
+                sourceData(idxROIfwd{iSub,ac_sources(ss)},:) = repmat(srcERP(ac_sources(ss),:),length(idxROIfwd{iSub,ac_sources(ss)}),1);
+                sourceDataSSVEP(idxROIfwd{iSub,ac_sources(ss)},:) = repmat(srcSSVEP(ac_sources(ss),:),length(idxROIfwd{iSub,ac_sources(ss)}),1);
             end
             % multiply fwd (128*20484) with the activated idx over time
             % (sourceData of 20484*90) and obtain Y elec x time
             y_stim = fullFwd{iSub} * sourceData;
+            y_stimSSVEP = fullFwd{iSub} * sourceDataSSVEP;
             % add noise
             [noisy_data,~] = add_noise_with_SNR( y_stim , SNRlevel );
             Y(iSub,:,:) = y_stim + noisy_data;
+            Y_SSVEP(iSub,:,:) = y_stimSSVEP + noisy_data;
         end
         %         figure;plotContourOnScalp(squeeze(Y(1,:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
         
         %% center Y, fullFwd, roiFwd across electrodes?? Sbj??
-        %%%%%% what should be substracted??????
-        % reshape Y?
-        % for now centre for each sbj across electrodes
-        % IT IS USELESS TO DO IT FOR fullFwd or roiFwd if it is only on
-        % single sbj -> gives the same numbers!!!
+        % use average reference for centering the data
         for iSub=1:numSubs
             Y(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
+            Y_SSVEP(iSub,:,:) = bsxfun(@minus,squeeze(Y_SSVEP(iSub,:,:)), mean(squeeze(Y_SSVEP(iSub,:,:))));
         end
-        %             fullFwd{iSub} = bsxfun(@minus,fullFwd{iSub}, mean(fullFwd{iSub}));
-        %             fullFwd2 = bsxfun(@minus,[fullFwd{:}], mean([fullFwd{:}]));
-        %             for rr=1:numROIs
-        %                 roiFwd{iSub,rr} = bsxfun(@minus,roiFwd{iSub,rr}, mean(roiFwd{iSub,rr}));
-        %             end
         
         %%  reduce dimension data (Ylo)
         % =PCA denoised version of Y (denoised by truncation of the SVD)
@@ -120,22 +120,24 @@ for totSbj=1:length(nbSbjToInclude)
         for iSub=1:numSubs
             [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
             Ylo(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+            [u2, s2, v2] = svd(squeeze(Y_SSVEP(iSub,:,:)));
+            Y_SSVEPlo(iSub,:,:) = u2(:,1:numCols)*s2(1:numCols,1:numCols)*v2(:, 1:numCols)';
         end
         %         figure;plotContourOnScalp(YloTEST(:,45),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
         %         figure;plotContourOnScalp(y_stim(:,45),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
        
-        
-        
         %% compute minimum norm
-        regionWhole = zeros(numSubs,numROIs,length(sourceERP));
-        regionROI = zeros(numSubs,numROIs,length(sourceERP));        
+        regionWhole = zeros(numSubs,numROIs,length(srcERP));
+        regionROI = zeros(numSubs,numROIs,length(srcERP));        
         % min_norm on average data: get beta values for each ROI over time 
-        [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(Ylo)), nLambdaRidge);
+        [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(Ylo,1)), nLambdaRidge);
+        [betaAverageSSVEP, ~, lambdaAverageSSVEP] = minimum_norm(avMap, squeeze(mean(Y_SSVEPlo,1)), nLambdaRidge);
         for iSub=1:numSubs
             % regular minimum_norm: on the 20484 indexes per sbj
             [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Ylo(iSub,:,:)), nLambdaRidge);
             % min_norm on only the ROI indexes per sbj
             [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Ylo(iSub,:,:)), nLambdaRidge);
+            [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
             
             % beta values are for the indexes, but I want it per ROI
             % get the number of indexes per ROI for this subj
@@ -144,6 +146,7 @@ for totSbj=1:length(nbSbjToInclude)
             range = [0 cumsum(rangeROI)]; % cumulative sum of elements
             % average the beta values per ROI (=across the indexes)
             regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
+            regionROI_SSVEP(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI_SSVEP(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
             % need to find the indexes for whole brain
             regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
             % create brain resp for each sbj
@@ -152,6 +155,7 @@ for totSbj=1:length(nbSbjToInclude)
         % average across subj
         retrieveWhole = squeeze(mean(regionWhole));
         retrieveROI = squeeze(mean(regionROI));
+        retrieveROI_SSVEP = squeeze(mean(regionROI_SSVEP));
         
         %% plot source amplitude overtime per ROI
         % for 1)source signal 2)trad+ROI informed average whole brain 
@@ -163,23 +167,30 @@ for totSbj=1:length(nbSbjToInclude)
             figure;rr=1;
             set(gcf,'position',[100,100,800,1000])
             for iRoi = 1:2:numROIs
-                subplot(9,4,1+4*(rr-1));hold on;
-                plot(sourceERP(iRoi,:)','m-','linewidth',2)
-                plot(sourceERP(iRoi+1,:)','b-','linewidth',2)
-                ylim([min(min(sourceERP)) max(max(sourceERP))])
-                title(listROIs(iRoi))
-                subplot(9,4,2+4*(rr-1));hold on;
+                subplot(9,5,1+5*(rr-1));hold on;
+                plot(betaAverage(iRoi,:)','m-','linewidth',2)
+                plot(betaAverage(iRoi+1,:)','b-','linewidth',2)
+                ylim([min(min(betaAverage)) max(max(betaAverage))])
+                title('average')
+                subplot(9,5,2+5*(rr-1));hold on;
                 plot(retrieveWhole(iRoi,:)','m-','linewidth',2)
                 plot(retrieveWhole(iRoi+1,:)','b-','linewidth',2)
                 ylim([min(min(retrieveWhole)) max(max(retrieveWhole))])
-                subplot(9,4,3+4*(rr-1));hold on;
+                title('whole brain')
+                subplot(9,5,3+5*(rr-1));hold on;
                 plot(retrieveROI(iRoi,:)','m-','linewidth',2)
                 plot(retrieveROI(iRoi+1,:)','b-','linewidth',2)
                 ylim([min(min(retrieveROI)) max(max(retrieveROI))])
-                subplot(9,4,4+4*(rr-1));hold on;
-                plot(betaAverage(iRoi,:)','m-','linewidth',2)
-                plot(betaAverage(iRoi+1,:)','b-','linewidth',2)
-                ylim([min(min(betaAverage)) max(max(betaAverage))])                
+                title('ROI only')
+                subplot(9,5,4+5*(rr-1));hold on;
+                plot(retrieveROI_SSVEP(iRoi,:)','m-','linewidth',2)
+                plot(retrieveROI_SSVEP(iRoi+1,:)','b-','linewidth',2)
+                ylim([min(min(retrieveROI_SSVEP)) max(max(retrieveROI_SSVEP))])  
+                subplot(9,5,5+5*(rr-1));hold on;
+                plot(srcERP(iRoi,:)','m-','linewidth',2)
+                plot(srcERP(iRoi+1,:)','b-','linewidth',2)
+                ylim([min(min(srcERP)) max(max(srcERP))]) 
+                title([listROIs(iRoi) ' source'])
                 rr=rr+1;
             end
             saveas(gcf,['figures' filesep 'simulMay'],'png')
@@ -189,52 +200,51 @@ for totSbj=1:length(nbSbjToInclude)
         %% compute auc, mse, relative energy using average signal in rois
         % do for all the min norm outputs
         [aucAve(repBoot,totSbj), energyAve(repBoot,totSbj),...
-            mseAve(repBoot,totSbj)] = computeMetrics(betaAverage,ac_sources,sourceERP);
+            mseAve(repBoot,totSbj)] = computeMetrics(betaAverage,ac_sources,srcERP);
         [aucWhole(repBoot,totSbj), energyWhole(repBoot,totSbj),...
-            mseWhole(repBoot,totSbj)] = computeMetrics(retrieveWhole,ac_sources,sourceERP);
+            mseWhole(repBoot,totSbj)] = computeMetrics(retrieveWhole,ac_sources,srcERP);
         [aucROI(repBoot,totSbj), energyROI(repBoot,totSbj),...
-            mseROI(repBoot,totSbj)] = computeMetrics(retrieveROI,ac_sources,sourceERP);
-
+            mseROI(repBoot,totSbj)] = computeMetrics(retrieveROI,ac_sources,srcERP);
+        [aucAveSSVEP(repBoot,totSbj), energyAveSSVEP(repBoot,totSbj),...
+            mseAveSSVEP(repBoot,totSbj)] = computeMetrics(betaAverageSSVEP,ac_sources,srcERP);
+        [aucROI_SSVEP(repBoot,totSbj), energyROI_SSVEP(repBoot,totSbj),...
+            mseROI_SSVEP(repBoot,totSbj)] = computeMetrics(retrieveROI_SSVEP,ac_sources,srcERP);
         
     end % end boostrap
     
 end % go through nb of sub to include
 
 
+figure;
+subplot(1,3,1);hold on;
+errorbar(nbSbjToInclude,mean(aucAve),std(aucAve))
+errorbar(nbSbjToInclude,mean(aucWhole),std(aucWhole))
+errorbar(nbSbjToInclude,mean(aucROI),std(aucROI))
+errorbar(nbSbjToInclude,mean(aucAveSSVEP),std(aucAveSSVEP))
+errorbar(nbSbjToInclude,mean(aucROI_SSVEP),std(aucROI_SSVEP))
+xlabel('nb of sub')
+ylabel('AUC')
+% ylim([0 1])
+subplot(1,3,2);hold on;
+errorbar(nbSbjToInclude,mean(energyAve),std(energyAve))
+errorbar(nbSbjToInclude,mean(energyWhole),std(energyWhole))
+errorbar(nbSbjToInclude,mean(energyROI),std(energyROI))
+errorbar(nbSbjToInclude,mean(energyAveSSVEP),std(energyAveSSVEP))
+errorbar(nbSbjToInclude,mean(energyROI_SSVEP),std(energyROI_SSVEP))
+xlabel('nb of sub')
+ylabel('Energy')
+% ylim([0 1])
+subplot(1,3,3);hold on;
+errorbar(nbSbjToInclude,mean(mseAve),std(mseAve))
+errorbar(nbSbjToInclude,mean(mseWhole),std(mseWhole))
+errorbar(nbSbjToInclude,mean(mseROI_SSVEP),std(mseROI_SSVEP))
+errorbar(nbSbjToInclude,mean(mseAveSSVEP),std(mseAveSSVEP))
+errorbar(nbSbjToInclude,mean(mseROI_SSVEP),std(mseROI_SSVEP))
+xlabel('nb of sub')
+ylabel('MSE')
+% ylim([0 2])
+legend('Average','Whole','ROI','Av-SSVEP','ROI-SSVEP')
 
-nameSim = {'V1-MT','V2V-V4'};
-for simul=1:length(allSig)
-    figure;
-    subplot(1,3,1+(simul-1)*3);hold on;
-    errorbar(nbSbjToInclude,mean(aucOld(:,:,simul)),std(aucOld(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(aucNew(:,:,simul)),std(aucNew(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(aucMinNormInd(:,:,simul)),std(aucMinNormInd(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(aucOldERP(:,:,simul)),std(aucOldERP(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(aucNewERP(:,:,simul)),std(aucNewERP(:,:,simul)))
-    xlabel('nb of sub')
-    ylabel('AUC')
-    ylim([0 1])
-    title(['simul ' nameSim{simul}])
-    subplot(1,3,2+(simul-1)*3);hold on;
-    errorbar(nbSbjToInclude,mean(energyOld(:,:,simul)),std(energyOld(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(energyNew(:,:,simul)),std(energyNew(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(energyMinNormInd(:,:,simul)),std(energyMinNormInd(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(energyOldERP(:,:,simul)),std(energyOldERP(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(energyNewERP(:,:,simul)),std(energyNewERP(:,:,simul)))
-    xlabel('nb of sub')
-    ylabel('Energy')
-    ylim([0 1])
-    subplot(1,3,3+(simul-1)*3);hold on;
-    errorbar(nbSbjToInclude,mean(mseOld(:,:,simul)),std(mseOld(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(mseNew(:,:,simul)),std(mseNew(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(mseMinNormInd(:,:,simul)),std(mseMinNormInd(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(mseOldERP(:,:,simul)),std(mseOldERP(:,:,simul)))
-    errorbar(nbSbjToInclude,mean(mseNewERP(:,:,simul)),std(mseNewERP(:,:,simul)))
-    xlabel('nb of sub')
-    ylabel('MSE')
-    ylim([0 2])
-    legend('minNorm','newMethod','minNormInd','minNormERP','newMethodERP')
-end
 set(gcf,'position',[100,100,900,500])
-saveas(gcf,['figures' filesep 'testSimulMetrics_Retino-new'],'png')
+saveas(gcf,['figures' filesep 'MayV1-MT'],'png')
 
