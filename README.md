@@ -1,0 +1,1 @@
+templateMinNorm
