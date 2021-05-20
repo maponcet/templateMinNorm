@@ -114,30 +114,69 @@ for totSbj=1:length(nbSbjToInclude)
             Y_SSVEP(iSub,:,:) = bsxfun(@minus,squeeze(Y_SSVEP(iSub,:,:)), mean(squeeze(Y_SSVEP(iSub,:,:))));
         end
         
+        %%% in previous code dim reduction per sbj -> results pretty bad
+        %%% and nb of sbj did not matter much!
+%         %%%% test dim reduction
+%         for iSub=1:numSubs
+%             [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
+%             YloIND(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+%         end
+%         % stack sbj vertically
+%         test = permute(Y,[2 1 3]);
+%         test2 = reshape(test,[128*10,90]);
+%         n = numel(test2);
+%         [u1, s1, v1] = svd(test2);
+%         Ylo10 = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+%         unstackedData = reshape(Ylo10,128,10,size(Ylo10,2));
+%         grandMeanData = squeeze(mean(unstackedData,2));
+%         figure;plotContourOnScalp(squeeze(mean(YloIND(1:5,:,45),1)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+%         figure;plotContourOnScalp(squeeze(mean(YloIND(1:10,:,45),1)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+%         figure;plotContourOnScalp(squeeze(grandMeanData(:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+%         testH = permute(Y(1:5,:,:),[2 1 3]);
+%         testH = reshape(testH,[128*5,90]);
+%         n = numel(testH);
+%         [u1, s1, v1] = svd(testH);
+%         YH = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+%         unstackedDataH = reshape(YH,128,5,size(YH,2));
+%         grandMeanDataH = squeeze(mean(unstackedDataH,2));
+%         figure;plotContourOnScalp(squeeze(grandMeanDataH(:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+
         %%  reduce dimension data (Ylo)
         % =PCA denoised version of Y (denoised by truncation of the SVD)
         %%%%%% per sbj or alltogether?
-        for iSub=1:numSubs
-            [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
-            Ylo(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-            [u2, s2, v2] = svd(squeeze(Y_SSVEP(iSub,:,:)));
-            Y_SSVEPlo(iSub,:,:) = u2(:,1:numCols)*s2(1:numCols,1:numCols)*v2(:, 1:numCols)';
-        end
-        %         figure;plotContourOnScalp(YloTEST(:,45),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
-        %         figure;plotContourOnScalp(y_stim(:,45),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+%         for iSub=1:numSubs
+%             [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
+%             Ylo(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+%             [u2, s2, v2] = svd(squeeze(Y_SSVEP(iSub,:,:)));
+%             Y_SSVEPlo(iSub,:,:) = u2(:,1:numCols)*s2(1:numCols,1:numCols)*v2(:, 1:numCols)';
+%         end
+       % stack sbj vertically
+       tmpY = permute(Y,[2 1 3]);
+       tmpY2 = reshape(tmpY,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
+       [u1, s1, v1] = svd(tmpY2);
+       Ylo = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+       tmpYs = permute(Y_SSVEP,[2 1 3]);
+       tmpY2s = reshape(tmpYs,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
+       [u1, s1, v1] = svd(tmpY2s);
+       Y_SSVEPlo = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
        
         %% compute minimum norm
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));        
         % min_norm on average data: get beta values for each ROI over time 
-        [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(Ylo,1)), nLambdaRidge);
-        [betaAverageSSVEP, ~, lambdaAverageSSVEP] = minimum_norm(avMap, squeeze(mean(Y_SSVEPlo,1)), nLambdaRidge);
+        unstackedY = reshape(Ylo,size(fullFwd{1},1),numSubs,size(Ylo,2));
+        unstackedSSVEP = reshape(Y_SSVEPlo,size(fullFwd{1},1),numSubs,size(Y_SSVEPlo,2));
+        [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(unstackedY,2)), nLambdaRidge);
+        [betaAverageSSVEP, ~, lambdaAverageSSVEP] = minimum_norm(avMap, squeeze(mean(unstackedSSVEP,2)), nLambdaRidge);
         for iSub=1:numSubs
             % regular minimum_norm: on the 20484 indexes per sbj
-            [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Ylo(iSub,:,:)), nLambdaRidge);
+%             [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Ylo(iSub,:,:)), nLambdaRidge);
+            [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
             % min_norm on only the ROI indexes per sbj
-            [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Ylo(iSub,:,:)), nLambdaRidge);
-            [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
+%             [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Ylo(iSub,:,:)), nLambdaRidge);
+%             [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
+            [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
+            [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedSSVEP(:,iSub,:)), nLambdaRidge);
             
             % beta values are for the indexes, but I want it per ROI
             % get the number of indexes per ROI for this subj
@@ -213,7 +252,9 @@ for totSbj=1:length(nbSbjToInclude)
     end % end boostrap
     
 end % go through nb of sub to include
-
+% save('secondPass.mat','aucAve','energyAve','mseAve','aucWhole','energyWhole','mseWhole',...
+%     'aucROI','energyROI','mseROI','aucAveSSVEP','energyAveSSVEP','mseAveSSVEP',...
+%     'aucROI_SSVEP','energyROI_SSVEP','mseROI_SSVEP')
 
 figure;
 subplot(1,3,1);hold on;
@@ -246,5 +287,5 @@ ylabel('MSE')
 legend('Average','Whole','ROI','Av-SSVEP','ROI-SSVEP')
 
 set(gcf,'position',[100,100,900,500])
-saveas(gcf,['figures' filesep 'MayV1-MT'],'png')
+saveas(gcf,['figures' filesep 'MayV1-MT-newSVD'],'png')
 
