@@ -1,12 +1,10 @@
 %%%%% ROI template bootstrap with replacement for increasing nb of max sbj
 
-
-
 clearvars;
 listFiles = dir('/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/forward*');
 load('averageMap50Sum.mat')
-nbBoot = 10;
-percErr = zeros(nbBoot,length(listFiles),size(avMap,2));
+nbBoot = 20;
+percErr = zeros(nbBoot,length(listFiles),size(avMap,1),size(avMap,2));
 
 for maxSbj = 1:length(listFiles)
     for bb=1:nbBoot
@@ -25,30 +23,33 @@ for maxSbj = 1:length(listFiles)
             for rr=1:length(listROIs)
                 clear indexROI
                 indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
-                roiMap(:,rr,iSubj) = sum(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
+                roiMap(:,rr,iSubj) = sum(fwdMatrix(:,roiInfo(indexROI).meshIndices),2); 
             end
             
         end
-        percErr(bb,maxSbj,:) =  (mean(roiMap,3) - avMap)^2 / avMap^2 ;
+        percErr(bb,maxSbj,:,:) =  (mean(roiMap,3) - avMap).^2 ./ avMap.^2 ;
     end
 end
 save roiBootstrapFromfwd.mat percErr listROIs
 
 %%%%%%%%%%%%%%%%%%%%%%%
-% percErr: boot, sbj, roi
+% percErr: boot, sbj, electrodes, roi
 load('roiBootstrapFromfwd.mat')
+% average across electrodes
+prctError = squeeze(mean(percErr,3));
 
 figure;hold on;
 set(gcf,'position',[100,100,1500,700])
 for src=1:size(prctError,3)
     bb = prctile(prctError(:,:,src),97.5);
-    subplot(3,6,src)
+    subplot(3,6,src); hold on;
     plot(mean(prctError(:,:,src),1),'LineWidth',2)
-    patch([1:size(prctError,2) size(prctError,2):-1:1],[ prctile(prctError(:,:,src),2.5) bb(end:-1:1)],'b','FaceAlpha',.1)
+    plot(sqrt(mean(prctError(:,:,src),1)),'LineWidth',2)
+%     patch([1:size(prctError,2) size(prctError,2):-1:1],[ prctile(prctError(:,:,src),2.5) bb(end:-1:1)],'b','FaceAlpha',.1)
     xlabel('nb sbj included')
     ylabel('% error')
     set(gca, 'YScale', 'log','XScale', 'log')
-    xlim([0 50]);ylim([0 250])
+    xlim([0 50]); %ylim([0 250])
     [aa, bb] = polyfit(log10(1:50),log10(mean(prctError(:,:,src),1)),1);
     title([listROIs{src} ' S=' num2str(aa(1),'%.2f')])
 end

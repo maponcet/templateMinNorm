@@ -36,3 +36,10 @@ ylabel('% overlap with any other 17 ROIs')
 xticks([1:18])
 xticklabels(listROIs)
 saveas(gcf,['figures' filesep 'meshOverlap'],'png')
+
+figure;hold on;
+bar([mean(overlap)' (mean(total)-mean(overlap))'],'stacked')
+xticks([1:18])
+xticklabels(listROIs)
+ylabel('nb of indexes')
+saveas(gcf,['figures' filesep 'meshOverlapStacked'],'png')
