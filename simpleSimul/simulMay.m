@@ -78,14 +78,16 @@ for totSbj=1:length(nbSbjToInclude)
         % use the generated sources to simulate scalp activity for each sbj 
         % (using individual fwd model)
         Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
-        Y_SSVEP = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
-        Ylo = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
-        Y_SSVEPlo = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y_SSVEP = Y;
+        Ylo = Y; Y_SSVEPlo = Y;
+        Y_noise = Y; 
+        Y_SSVEPprev = Y;
         
         for iSub=1:numSubs
             % initialise matrix of source activity
             sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
             sourceDataSSVEP = zeros(size(fullFwd{iSub},2) , length(srcSSVEP));
+            sourceNoise = sourceData; % no signal, used to compute SNR
             if length([idxROIfwd{iSub,ac_sources}]) ~= length(unique([idxROIfwd{iSub,ac_sources}]))
                 fprintf('Overlapping source indexes S%d \n',listSub(iSub));
             end
@@ -100,11 +102,36 @@ for totSbj=1:length(nbSbjToInclude)
             % (sourceData of 20484*90) and obtain Y elec x time
             y_stim = fullFwd{iSub} * sourceData;
             y_stimSSVEP = fullFwd{iSub} * sourceDataSSVEP;
+%             y_noise = fullFwd{iSub} * sourceNoise;
             % add noise
             [noisy_data,~] = add_noise_with_SNR( y_stim , SNRlevel );
+            % to keep the same SNR for the 2 Y, need to compute noise for 
+            % the 2 Y separately as it is based on the variance of the signal
+            [noisy_dataSSVEP,~] = add_noise_with_SNR( y_stimSSVEP , SNRlevel ); 
             Y(iSub,:,:) = y_stim + noisy_data;
-            Y_SSVEP(iSub,:,:) = y_stimSSVEP + noisy_data;
+            Y_SSVEP(iSub,:,:) = y_stimSSVEP + noisy_dataSSVEP;
+%             Y_SSVEPprev(iSub,:,:) = y_stimSSVEP + noisy_data;
+%             Y_noise(iSub,:,:) = y_noise + noisy_data;
+%             Y_noiseSSVEP(iSub,:,:) = y_noise + noisy_dataSSVEP;
+%             Ypure(iSub,:,:) = y_stim;
         end
+%         % check SNR
+%         for iSub=1:numSubs
+%             % SNR = Power(signal)/Power(noise) = (RMS(signal)/RMS(noise))^2  
+%             % math: sum power / sum power = (rms/rms)^2
+%             % S/N = (S+N)/N - 1
+%             % Attention: (a+b)^2 is not a^2+b^2 so 
+%             % Power(pure signal)/Power(noise) or (RMS(pure signal)/RMS(noise))^2
+%             % is not equal to (RMS(signal+noise)/RMS(noise))^2 -1  
+%             ySNR(iSub) = (rms(rms(Y(iSub,:,:)))/rms(rms(Y_noise(iSub,:,:)))) ^2 -1;
+%             ySNR2(iSub) = sum(sum((Ypure(iSub,:,:)).^2))/sum(sum((Y_noise(iSub,:,:)).^2)) ;
+%             ySNR3(iSub) = (rms(rms((Ypure(iSub,:,:)+Y_noise(iSub,:,:))))/rms(rms(Y_noise(iSub,:,:)))) ^2 -1;
+%             ySNR_SSVEP(iSub) = (rms(rms(Y_SSVEP(iSub,:,:)))/rms(rms(Y_noiseSSVEP(iSub,:,:)))) ^2 -1;
+%             ySNR_SSVEPprev(iSub) = (rms(rms(Y_SSVEPprev(iSub,:,:)))/rms(rms(Y_noise(iSub,:,:))))^2 -1;
+%         end
+
+        
+        
         %         figure;plotContourOnScalp(squeeze(Y(1,:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
         
         %% center Y, fullFwd, roiFwd across electrodes?? Sbj??
@@ -150,11 +177,11 @@ for totSbj=1:length(nbSbjToInclude)
             [u2, s2, v2] = svd(squeeze(Y_SSVEP(iSub,:,:)));
             Y_SSVEPlo(iSub,:,:) = u2(:,1:numCols)*s2(1:numCols,1:numCols)*v2(:, 1:numCols)';
         end
-       % stack sbj vertically
-       tmpY = permute(Y,[2 1 3]);
-       tmpY2 = reshape(tmpY,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
-       [u1, s1, v1] = svd(tmpY2);
-       YloStack = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
+%        % stack sbj vertically
+%        tmpY = permute(Y,[2 1 3]);
+%        tmpY2 = reshape(tmpY,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
+%        [u1, s1, v1] = svd(tmpY2);
+%        YloStack = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
 %        tmpYs = permute(Y_SSVEP,[2 1 3]);
 %        tmpY2s = reshape(tmpYs,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
 %        [u1, s1, v1] = svd(tmpY2s);
@@ -166,8 +193,8 @@ for totSbj=1:length(nbSbjToInclude)
         % min_norm on average data: get beta values for each ROI over time 
         [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(Ylo,1)), nLambdaRidge);
         [betaAverageSSVEP, ~, lambdaAverageSSVEP] = minimum_norm(avMap, squeeze(mean(Y_SSVEPlo,1)), nLambdaRidge);
-        unstackedY = reshape(YloStack,size(fullFwd{1},1),numSubs,size(YloStack,2));
-        [betaAverageStack, ~, lambdaAverageStack] = minimum_norm(avMap, squeeze(mean(unstackedY,2)), nLambdaRidge);
+%         unstackedY = reshape(YloStack,size(fullFwd{1},1),numSubs,size(YloStack,2));
+%         [betaAverageStack, ~, lambdaAverageStack] = minimum_norm(avMap, squeeze(mean(unstackedY,2)), nLambdaRidge);
 %         unstackedSSVEP = reshape(Y_SSVEPloStack,size(fullFwd{1},1),numSubs,size(Y_SSVEPloStack,2));
 %         [betaAverageSSVEP, ~, lambdaAverageSSVEP] = minimum_norm(avMap, squeeze(mean(unstackedSSVEP,2)), nLambdaRidge);
         for iSub=1:numSubs
@@ -177,7 +204,7 @@ for totSbj=1:length(nbSbjToInclude)
             % min_norm on only the ROI indexes per sbj
             [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Ylo(iSub,:,:)), nLambdaRidge);
 %             [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
-            [betaROIStack, ~, lambdaROIStack] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
+%             [betaROIStack, ~, lambdaROIStack] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
 %             [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedSSVEP(:,iSub,:)), nLambdaRidge);
             
             % beta values are for the indexes, but I want it per ROI
@@ -188,7 +215,7 @@ for totSbj=1:length(nbSbjToInclude)
             % average the beta values per ROI (=across the indexes)
             regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
 %             regionROI_SSVEP(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI_SSVEP(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
-            regionROI_Stack(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROIStack(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
+%             regionROI_Stack(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROIStack(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
             % need to find the indexes for whole brain
             regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
             % create brain resp for each sbj
@@ -198,7 +225,7 @@ for totSbj=1:length(nbSbjToInclude)
         retrieveWhole = squeeze(mean(regionWhole,1));
         retrieveROI = squeeze(mean(regionROI,1));
 %         retrieveROI_SSVEP = squeeze(mean(regionROI_SSVEP));
-        retrieveROI_Stack = squeeze(mean(regionROI_Stack,1));
+%         retrieveROI_Stack = squeeze(mean(regionROI_Stack,1));
         
         %% plot source amplitude overtime per ROI
         % for 1)source signal 2)trad+ROI informed average whole brain 
@@ -242,27 +269,29 @@ for totSbj=1:length(nbSbjToInclude)
         
         %% compute auc, mse, relative energy using average signal in rois
         % do for all the min norm outputs
-        [aucAve(repBoot,totSbj), energyAve(repBoot,totSbj),...
-            mseAve(repBoot,totSbj)] = computeMetrics(betaAverage,ac_sources,srcERP);
-        [aucWhole(repBoot,totSbj), energyWhole(repBoot,totSbj),...
-            mseWhole(repBoot,totSbj)] = computeMetrics(retrieveWhole,ac_sources,srcERP);
-        [aucROI(repBoot,totSbj), energyROI(repBoot,totSbj),...
-            mseROI(repBoot,totSbj)] = computeMetrics(retrieveROI,ac_sources,srcERP);
-        [aucAveSSVEP(repBoot,totSbj), energyAveSSVEP(repBoot,totSbj),...
-            mseAveSSVEP(repBoot,totSbj)] = computeMetrics(betaAverageSSVEP,ac_sources,srcERP);
-        [aucAveStack(repBoot,totSbj), energyAveStack(repBoot,totSbj),...
-            mseAveStack(repBoot,totSbj)] = computeMetrics(betaAverageStack,ac_sources,srcERP);
+        [aucAve(repBoot,totSbj), energyAve(repBoot,totSbj),mseAve(repBoot,totSbj),...
+            mseAveNorm(repBoot,totSbj),] = computeMetrics(betaAverage,ac_sources,srcERP);
+        [aucWhole(repBoot,totSbj), energyWhole(repBoot,totSbj),mseWhole(repBoot,totSbj),...
+            mseWholeNorm(repBoot,totSbj)] = computeMetrics(retrieveWhole,ac_sources,srcERP);
+        [aucROI(repBoot,totSbj), energyROI(repBoot,totSbj),mseROI(repBoot,totSbj),...
+            mseROINorm(repBoot,totSbj)] = computeMetrics(retrieveROI,ac_sources,srcERP);
+        [aucAveSSVEP(repBoot,totSbj), energyAveSSVEP(repBoot,totSbj),mseAveSSVEP(repBoot,totSbj),...
+            mseAveSSVEPNorm(repBoot,totSbj)] = computeMetrics(betaAverageSSVEP,ac_sources,srcERP);
+%         [aucAveStack(repBoot,totSbj), energyAveStack(repBoot,totSbj),...
+%             mseAveStack(repBoot,totSbj)] = computeMetrics(betaAverageStack,ac_sources,srcERP);
 %         [aucROI_SSVEP(repBoot,totSbj), energyROI_SSVEP(repBoot,totSbj),...
 %             mseROI_SSVEP(repBoot,totSbj)] = computeMetrics(retrieveROI_SSVEP,ac_sources,srcERP);
-        [aucROI_Stack(repBoot,totSbj), energyROI_Stack(repBoot,totSbj),...
-            mseROI_Stack(repBoot,totSbj)] = computeMetrics(retrieveROI_Stack,ac_sources,srcERP);        
+%         [aucROI_Stack(repBoot,totSbj), energyROI_Stack(repBoot,totSbj),...
+%             mseROI_Stack(repBoot,totSbj)] = computeMetrics(retrieveROI_Stack,ac_sources,srcERP);        
     end % end boostrap
     
 end % go through nb of sub to include
-save('secondPass.mat','aucAve','energyAve','mseAve','aucWhole','energyWhole','mseWhole',...
+save('newTest_SNR_MSE.mat','aucAve','energyAve','mseAve','aucWhole','energyWhole','mseWhole',...
     'aucROI','energyROI','mseROI','aucAveSSVEP','energyAveSSVEP','mseAveSSVEP',...
-    'aucAveStack','energyAveStack','mseAveStack','aucROI_Stack','energyROI_Stack','mseROI_Stack')
-
+    'mseAveNorm','mseROINorm','mseAveSSVEPNorm','mseWholeNorm')
+% save('secondPass.mat','aucAve','energyAve','mseAve','aucWhole','energyWhole','mseWhole',...
+%     'aucROI','energyROI','mseROI','aucAveSSVEP','energyAveSSVEP','mseAveSSVEP',...
+%     'aucAveStack','energyAveStack','mseAveStack','aucROI_Stack','energyROI_Stack','mseROI_Stack')
 figure;
 subplot(1,3,1);hold on;
 errorbar(nbSbjToInclude,mean(aucAve),std(aucAve))
@@ -293,36 +322,36 @@ ylabel('MSE')
 % ylim([0 2])
 legend('Average','Whole','ROI','Av-SSVEP','ROI-SSVEP')
 set(gcf,'position',[100,100,900,500])
-saveas(gcf,['figures' filesep 'MayV1-MT-b20'],'png')
+saveas(gcf,['figures' filesep 'V1-MT-SNR-MSE'],'png')
 
-figure;
-subplot(1,3,1);hold on;
-errorbar(nbSbjToInclude,mean(aucAve),std(aucAve))
-errorbar(nbSbjToInclude,mean(aucROI),std(aucROI))
-errorbar(nbSbjToInclude,mean(aucAveStack),std(aucAveStack))
-errorbar(nbSbjToInclude,mean(aucROI_Stack),std(aucROI_Stack))
-% errorbar(nbSbjToInclude,mean(aucROI_SSVEP),std(aucROI_SSVEP))
-xlabel('nb of sub')
-ylabel('AUC')
-% ylim([0 1])
-subplot(1,3,2);hold on;
-errorbar(nbSbjToInclude,mean(energyAve),std(energyAve))
-errorbar(nbSbjToInclude,mean(energyROI),std(energyROI))
-errorbar(nbSbjToInclude,mean(energyAveStack),std(energyAveStack))
-errorbar(nbSbjToInclude,mean(energyROI_Stack),std(energyROI_Stack))
-% errorbar(nbSbjToInclude,mean(energyROI_SSVEP),std(energyROI_SSVEP))
-xlabel('nb of sub')
-ylabel('Energy')
-% ylim([0 1])
-subplot(1,3,3);hold on;
-errorbar(nbSbjToInclude,mean(mseAve),std(mseAve))
-errorbar(nbSbjToInclude,mean(mseROI),std(mseROI))
-errorbar(nbSbjToInclude,mean(mseAveStack),std(mseAveStack))
-errorbar(nbSbjToInclude,mean(mseROI_Stack),std(mseROI_Stack))
-% errorbar(nbSbjToInclude,mean(mseROI_SSVEP),std(mseROI_SSVEP))
-xlabel('nb of sub')
-ylabel('MSE')
-% ylim([0 2])
-legend('Average','ROI','Av-Stack','ROI-Stack')
-set(gcf,'position',[100,100,900,500])
-saveas(gcf,['figures' filesep 'MayV1-MT-b20Stack'],'png')
+% figure;
+% subplot(1,3,1);hold on;
+% errorbar(nbSbjToInclude,mean(aucAve),std(aucAve))
+% errorbar(nbSbjToInclude,mean(aucROI),std(aucROI))
+% errorbar(nbSbjToInclude,mean(aucAveStack),std(aucAveStack))
+% errorbar(nbSbjToInclude,mean(aucROI_Stack),std(aucROI_Stack))
+% % errorbar(nbSbjToInclude,mean(aucROI_SSVEP),std(aucROI_SSVEP))
+% xlabel('nb of sub')
+% ylabel('AUC')
+% % ylim([0 1])
+% subplot(1,3,2);hold on;
+% errorbar(nbSbjToInclude,mean(energyAve),std(energyAve))
+% errorbar(nbSbjToInclude,mean(energyROI),std(energyROI))
+% errorbar(nbSbjToInclude,mean(energyAveStack),std(energyAveStack))
+% errorbar(nbSbjToInclude,mean(energyROI_Stack),std(energyROI_Stack))
+% % errorbar(nbSbjToInclude,mean(energyROI_SSVEP),std(energyROI_SSVEP))
+% xlabel('nb of sub')
+% ylabel('Energy')
+% % ylim([0 1])
+% subplot(1,3,3);hold on;
+% errorbar(nbSbjToInclude,mean(mseAve),std(mseAve))
+% errorbar(nbSbjToInclude,mean(mseROI),std(mseROI))
+% errorbar(nbSbjToInclude,mean(mseAveStack),std(mseAveStack))
+% errorbar(nbSbjToInclude,mean(mseROI_Stack),std(mseROI_Stack))
+% % errorbar(nbSbjToInclude,mean(mseROI_SSVEP),std(mseROI_SSVEP))
+% xlabel('nb of sub')
+% ylabel('MSE')
+% % ylim([0 2])
+% legend('Average','ROI','Av-Stack','ROI-Stack')
+% set(gcf,'position',[100,100,900,500])
+% saveas(gcf,['figures' filesep 'MayV1-MT-SNR-MSE'],'png')
