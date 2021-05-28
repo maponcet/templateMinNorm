@@ -22,3 +22,23 @@ fourierBasis = dftmtx(nT);
 invFourier  = conj(fourierBasis)/nT;
 waveForm = wAmp'*fourierBasis(wList+1,:);
 waveForm = real(waveForm);
+plot(waveForm)
+
+
+% time line
+x = 0 : pi / 45 : 2 * pi-pi/45;
+% list freq
+wList= [1:1:12]'; % max Freq is 12
+nF = length(wList);
+% define the amplitude response change with frequencies (peak around 8Hz)
+wAmp = [linspace(.05,1,nF/2) linspace(1,.25,nF/2) ]'; 
+wAmp(2:2:end) = wAmp(2:2:end)*1;
+
+wPhase = (rand*wList)+repmat([rand*pi rand*pi]',nF/2,1);
+wAmp = cos(wPhase).*wAmp + 1i.*sin(wPhase).*wAmp;
+
+fourierBasis = dftmtx(90);
+invFourier  = conj(fourierBasis)/nT;
+waveForm = wAmp'*fourierBasis(wList+1,:);
+waveForm = real(waveForm);
+plot(waveForm)
