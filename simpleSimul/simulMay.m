@@ -26,7 +26,7 @@ activeROIs = [sourceL,sourceR]; % left sources then right sources to make it eas
 ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
 
 % nbSbjToInclude =[1 2 5 10 20 30 40 50];
-nbSbjToInclude =[1 5 10 30 50];
+nbSbjToInclude =[1 5 10 25 50];
 totBoot = 10; % nb of bootstrap
 
 % initialise variables
@@ -323,6 +323,39 @@ end % go through nb of sub to include
 save('SSVEP.mat','aucAve','energyAve','mseAveNorm','aucWhole_SSVEP','energyWhole_SSVEP','mseWholeNorm_SSVEP',...
     'aucROI_SSVEP','energyROI_SSVEP','mseROINorm_SSVEP','aucAveSSVEP','energyAveSSVEP','mseAveNormSSVEP',...
     'aucAveTime','energyAveTime','mseAveNormTime')
+
+figure;
+subplot(1,3,1);hold on;
+errorbar(nbSbjToInclude,mean(aucAveSSVEP),std(aucAveSSVEP))
+errorbar(nbSbjToInclude,mean(aucWhole_SSVEP),std(aucWhole_SSVEP))
+errorbar(nbSbjToInclude,mean(aucROI_SSVEP),std(aucROI_SSVEP))
+errorbar(nbSbjToInclude,mean(aucAve),std(aucAve))
+errorbar(nbSbjToInclude,mean(aucAveTime),std(aucAveTime))
+xlabel('nb of sub')
+ylabel('AUC')
+% ylim([0 1])
+subplot(1,3,2);hold on;
+errorbar(nbSbjToInclude,mean(energyAveSSVEP),std(energyAveSSVEP))
+errorbar(nbSbjToInclude,mean(energyWhole_SSVEP),std(energyWhole_SSVEP))
+errorbar(nbSbjToInclude,mean(energyROI_SSVEP),std(energyROI_SSVEP))
+errorbar(nbSbjToInclude,mean(energyAve),std(energyAve))
+errorbar(nbSbjToInclude,mean(energyAveTime),std(energyAveTime))
+xlabel('nb of sub')
+ylabel('Energy')
+% ylim([0 1])
+subplot(1,3,3);hold on;
+errorbar(nbSbjToInclude,mean(mseAveNormSSVEP),std(mseAveNormSSVEP))
+errorbar(nbSbjToInclude,mean(mseWholeNorm_SSVEP),std(mseWholeNorm_SSVEP))
+errorbar(nbSbjToInclude,mean(mseROINorm_SSVEP),std(mseROINorm_SSVEP))
+errorbar(nbSbjToInclude,mean(mseAveNorm),std(mseAveNorm))
+errorbar(nbSbjToInclude,mean(mseAveNormTime),std(mseAveNormTime))
+xlabel('nb of sub')
+ylabel('MSEnorm')
+legend('Average-SSVEP','Whole-SSVEP','ROI-SSVEP','Av-ERP','Av-ERPtime')
+set(gcf,'position',[100,100,900,500])
+saveas(gcf,['figures' filesep 'V1-MT-SSVEP'],'png')
+
+
 
 % save('secondPass.mat','aucAve','energyAve','mseAve','aucWhole','energyWhole','mseWhole',...
 %     'aucROI','energyROI','mseROI','aucAveSSVEP','energyAveSSVEP','mseAveSSVEP',...
