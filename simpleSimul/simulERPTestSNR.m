@@ -17,7 +17,6 @@ numROIs = length(listROIs);
 % some parameters
 SNRlevel = [0.1 10 50 100 500 1000]; % noise level 10% = if the signal is 10 then the noise is 10*10, for 0.5 S=50/100
 nLambdaRidge = 50; % for calculating minimum_norm, reg constant, hyper param in min norm
-numCols = 5; % For reducing dimensionality of data: use first X columns of v ([~, ~, v] = svd(Y);) as time basis (old code = 2, new = 5)
 % set 2 vectors of the left and right sources in the same order
 sourceL = {'V1-L','MT-L'};
 sourceR = {'V1-R','MT-R'};
@@ -84,7 +83,7 @@ for level=1:length(SNRlevel)
         % use the generated sources to simulate scalp activity for each sbj 
         % (using individual fwd model)
         Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
-        Ylo = Y; Y_noise = Y; 
+        Y_noise = Y; 
         
         for iSub=1:numSubs
             % initialise matrix of source activity
