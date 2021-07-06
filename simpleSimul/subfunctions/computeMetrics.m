@@ -1,4 +1,4 @@
-function [auc, energy,mse] = computeMetrics(beta,indSources,sourceOverTime)
+function [auc, energy,mseNorm] = computeMetrics(beta,indSources,sourceOverTime)
 % beta is the retrieved signal (beta values output from minimum_norm) per
 % ROI over time (here 18 ROI x 90 timepoints)
 % indSources is a vector of the activated source indexes (so length should
@@ -26,13 +26,16 @@ energy = mean(relEnergy);
 %%%%% mse
 % paper: norm(sourceValOverTime(:,nT)-betaReg(:,nT),'fro').^2 / numel(betaReg(:,nT))
 mseBeta= zeros(1,size(beta,2));
+mseBetaNorm= zeros(1,size(beta,2));
 for nT = 1:size(beta,2)
     normSource = sourceOverTime(:,nT) / max(abs(sourceOverTime(:,nT))); % normalise simulated source
     % the 2 lines below are equal
-%     mseBeta(nT) = sum( (normSource(indSources) - norm_beta(indSources,nT)).^2 ) / numel(normSource(indSources));
-    mseBeta(nT) = norm(normSource(indSources) - norm_beta(indSources,nT),'fro').^2 / numel(norm_beta(indSources,nT));
+%     mseBeta(nT) = sum( (normSource - norm_beta(:,nT)).^2 ) / numel(normSource);
+    mseBetaNorm(nT) = norm(normSource - norm_beta(:,nT),'fro').^2 / numel(norm_beta(:,nT));
+    mseBeta(nT) = norm(sourceOverTime(:,nT) - beta(:,nT),'fro').^2 / numel(beta(:,nT));
 end
-mse = mean(mseBeta);
+mseNorm = mean(mseBetaNorm); 
+mse = mean(mseBeta); % not meaningful
 
 % % test frobenius:
 % a = randn(10,1); b=randn(10,1);

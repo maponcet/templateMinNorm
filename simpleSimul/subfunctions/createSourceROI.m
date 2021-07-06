@@ -1,6 +1,7 @@
-function [sourceAmplitude, sourceSSVEP, sourceERP] = createSourceROI(numROIs,diffSource,sameSource)
+function [sourceAmplitude, sourceSSVEP, sourceERP,timeERP] = createSourceROI(numROIs,diffSource,sameSource)
 % for each diffSource, generate a random amplitude activity
 % (sourceAmplitude) and a timecourse over 90 points (sourceERP) 
+% + timeERP = time window of the ERP (2 std)
 
 % diffSource is the indexes of the sources to generate (e.g. in the left hemisphere)
 % sameSource [optional] is the indexes of the same sources as in diffSources (e.g. in the right hemisphere)
@@ -9,7 +10,7 @@ function [sourceAmplitude, sourceSSVEP, sourceERP] = createSourceROI(numROIs,dif
 % numROIs is the total number of ROIs
 
 % time line
-x = 0 : pi / 45 : 2 * pi-pi/45;
+x = 0 : pi / 45 : 2 * pi-pi/45; % 360 deg with point every 4 deg
 % initialise variable
 sourceAmplitude = zeros(numROIs,1);
 sourceERP = zeros(numROIs, length(x) );
@@ -26,12 +27,16 @@ for k = 1 : length(diffSource)
     sourceAmplitude(diffSource(k)) = 1 + randi(90)/10;
     % create SSVEP waveform with random phase delay and random
     % coef for each source
-    y = rand * cos( 4 * x - rand * pi ) + ...
+    y = rand * cos( 2 * x - rand * pi ) + ...
+        rand * cos( 4 * x - rand * pi ) + ...
         rand * cos( 8 * x - rand * pi ) + ...
-        rand * cos( 12 * x - rand * pi ) + ...
-        rand * cos( 16 * x - rand * pi );
+        rand * cos( 12 * x - rand * pi );
     % create ERP waveform
-    yERP = y.*gaussmf(x,[pi/4 pi]);
+%     yERPgauss = y.*gaussmf(x,[pi/4 pi]); % std=pi/4, mean=pi
+    % use a half cosine
+    cosFilt = cos(-pi:pi/45:pi-pi/45);
+    cosFilt(cosFilt<0) = 0;
+    yERP = y.* cosFilt;
     % multiply waveform by the source amplitude (ROIxtime)
     sourceSSVEP( diffSource(k) , : )  = y * sourceAmplitude(diffSource(k));
     sourceERP( diffSource(k) , : )  = yERP * sourceAmplitude(diffSource(k));
@@ -41,4 +46,9 @@ for k = 1 : length(diffSource)
         sourceAmplitude( sameSource(k) , : )  = sourceAmplitude(diffSource(k));
     end
 end
+
+% get timepoints corresponding to the active ERP window = 2std
+% centre gaussian +/- 2 std in the gaussmf
+% timeERPgauss = find(x>pi-2*pi/4 & x<pi+2*pi/4);
+timeERP = find(cosFilt>0);
 
