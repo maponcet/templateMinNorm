@@ -1,9 +1,9 @@
 % create average activity map from the forward .mat files from the 25 sbj
 % in the PlosOne paper + the 50 total sbj (average ROI locations)
-addpath('/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/requiredFunctions/');
-addpath(genpath('/Volumes/Amrutam/Marlene/Git/svndl_code/'));
-setpref('mrLASSO','scalpFileDir','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/anatomy');
 
+% addpath('/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/requiredFunctions/');
+% addpath(genpath('/Volumes/Amrutam/Marlene/Git/svndl_code/'));
+% setpref('mrLASSO','scalpFileDir','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/anatomy');
 
 
 %%% for the sbj in PlosOne paper
@@ -58,7 +58,8 @@ save('averageMap25Plos.mat','avMap')
 
 %%%% For the 50 sbj
 clearvars
-listFiles = dir('/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/forward*');
+% listFiles = dir('/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/forward*');
+listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/*.mat');
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
@@ -148,21 +149,42 @@ for roi=1:2:18
 end
 saveas(gcf,'averageMap50scaleV1sameRange','png')
 
-% % NONSENSE!
-% figure;plotOnEgi(avMap.activity(:,1))
-% cmap = jmaColors('arizona');
-% caxis([-50 150])
-% % 32 colours from 0 to 150
-% % remove 20 colours in the first 32 cmap
-% cmap2 = cmap([1:3:32 32:end],:);
-% colormap(cmap2);
-% colorbar
-%   
-% figure('position', [200, 0, 1500, 800])
-% for roi=1:18
-%     subplot(3,6,roi)
-%     title(listROIs(roi))
-%     plotOnEgi(avMap.activity(:,roi))
-%     caxis([-50 150])
-%     colormap(cmap2);
-% end
+
+
+% plot each ind V1
+pickROI = [1 2 17 18];
+for rr=1:length(pickROI)
+    minScale = min(min(roiMapSum(:,pickROI(rr),:)));
+    maxScale = max(max(roiMapSum(:,pickROI(rr),:)));
+    scale = max([abs(minScale) abs(maxScale)]);
+    figure('position', [200, 100, 1800, 1200])
+    for ff=1:25
+        subplot(5,5,ff);
+        plotOnEgi(roiMapSum(:,pickROI(rr),ff))
+        caxis([-scale scale]);
+    end
+    saveas(gcf,['indROI/scale' listROIs{pickROI(rr)} '_S1-25'],'png')
+    figure('position', [200, 100, 1800, 1200])
+    for ff=26:length(listFiles)
+        subplot(5,5,ff-25);
+        plotOnEgi(roiMapSum(:,pickROI(rr),ff))
+        caxis([-scale scale]);
+    end
+    saveas(gcf,['indROI/scale' listROIs{pickROI(rr)} '_S26-50'],'png')
+    figure('position', [200, 100, 1800, 1200])
+    for ff=1:25
+        subplot(5,5,ff);
+        plotOnEgi(roiMapSum(:,pickROI(rr),ff))
+        colorbar;
+    end
+    saveas(gcf,['indROI/unscaled' listROIs{pickROI(rr)} '_S1-25'],'png')
+    figure('position', [200, 100, 1800, 1200])
+    for ff=26:length(listFiles)
+        subplot(5,5,ff-25);
+        plotOnEgi(roiMapSum(:,pickROI(rr),ff))
+        colorbar;
+    end
+    saveas(gcf,['indROI/unscale' listROIs{pickROI(rr)} '_S26-50'],'png')
+end
+
+
