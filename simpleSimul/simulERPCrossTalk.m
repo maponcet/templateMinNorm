@@ -1,18 +1,20 @@
 clearvars;close all;
 % simulate one area and compute amount of leakage (crosstalk) with other
 % areas
+% NO noise
 
 addpath([pwd filesep 'subfunctions' filesep]);
-dataPath = '/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/';
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
+% dataPath = '/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/';
 dirList = dir([dataPath 'forward*']);
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 numSubs = length(dirList);
 
 % some parameters
-nLambdaRidge = 50; % for calculating minimum_norm, reg constant, hyper param in min norm
+nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
 SNRlevel = 100; % noise level 
-totBoot = 5; % nb of bootstrap
+totBoot = 1; % nb of bootstrap
 crossTalkTemplate = zeros(totBoot,numROIs,numROIs);
 crossTalkWhole = zeros(totBoot,numROIs,numROIs);
 crossTalkROI = zeros(totBoot,numROIs,numROIs);
@@ -76,16 +78,21 @@ for seedRoi = 1:numROIs
             % multiply fwd (128*20484) with the activated idx over time
             % (sourceData of 20484*90) and obtain Y elec x time
             y_stim = fullFwd{iSub} * sourceData;
-            % add noise
-            [noisy_data] = add_ERPnoise_with_SNR( y_stim , SNRlevel,winERP );
-            Y(iSub,:,:) = y_stim + noisy_data;
+%             % add noise
+%             [noisy_data] = add_ERPnoise_with_SNR( y_stim , SNRlevel,winERP );
+%             Y(iSub,:,:) = y_stim + noisy_data;
+            Y(iSub,:,:) = y_stim;
         end
         
-         %% Use average reference for centering Y 
+        %% Use average reference for centering Y
+        %%% that is: substract the average electrode activity at each time point
+        % this is done by bsxfun which applies element-wise substraction (the 90
+        % averages across electrodes)
         for iSub=1:numSubs
             Y(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
         end
- 
+
+
         %% compute minimum norm
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));        
@@ -127,22 +134,41 @@ for seedRoi = 1:numROIs
     
 end % different activated sources
 
+% figure;
+% subplot(3,1,1);imagesc(squeeze(mean(crossTalkTemplate)));colorbar;caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)  
+% ylabel('seedArea');xlabel('predictArea')
+% title('templateBased')
+% subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole)));colorbar;caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
+% ylabel('seedArea');xlabel('predictArea')
+% title('Whole MinNorm')
+% subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI)));colorbar;caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
+% ylabel('seedArea');xlabel('predictArea')
+% title('ROI MinNorm')
+% set(gcf,'position',[100,100,800,1800])
+% saveas(gcf,['figures' filesep 'ERPcrossTalkNoise'],'png')
+
+
 figure;
-subplot(3,1,1);imagesc(squeeze(mean(crossTalkTemplate)));colorbar;caxis([0 1])
-set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-set(gca, 'YTick',1:18, 'YTickLabel',listROIs)  
+subplot(3,1,1);imagesc(squeeze(crossTalkTemplate(1,[1:2:18 2:2:18],[1:2:18 2:2:18])));colorbar;%caxis([0 1])
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
 ylabel('seedArea');xlabel('predictArea')
 title('templateBased')
-subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole)));colorbar;caxis([0 1])
-set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
+subplot(3,1,2);imagesc(squeeze((crossTalkWhole(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('Whole MinNorm')
-subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI)));colorbar;caxis([0 1])
-set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
+subplot(3,1,3);imagesc(squeeze((crossTalkROI(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('ROI MinNorm')
 set(gcf,'position',[100,100,800,1800])
-saveas(gcf,['figures' filesep 'ERPcrossTalk'],'png')
-
+saveas(gcf,['figures' filesep 'ERPcrossTalkNoNoise2'],'png')

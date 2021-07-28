@@ -16,8 +16,8 @@ load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-noiseLevel = 10; % noise level 10% = if the signal is 10 then the noise is 10*10, for 0.5 S=50/100
-lambda = [10 50:50:1000 2000:100:5000]; % for calculating minimum_norm, reg constant, hyper param in min norm
+noiseLevel = [1 100]; % 1 is same amount of signal/noise, 100 is 100 times more signal than noise
+lambda = [5 10 50:50:1000 2000:100:5000 8000 10000]; % for calculating minimum_norm, reg constant, hyper param in min norm
 % set 2 vectors of the left and right sources in the same order
 sourceL = {'V1-L','MT-L'};
 sourceR = {'V1-R','MT-R'};
@@ -27,28 +27,27 @@ activeROIs = [sourceL,sourceR]; % left sources then right sources to make it eas
 ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
 
 % nbSbjToInclude =[1 2 5 10 20 30 40 50];
-nbSbjToInclude =20;
 
-repBoot = 1;
 totSbj = 1;
-totBoot = 1;
+totBoot = 20;
 
 % initialise variables
-aucAve = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-energyAve = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-mseAveNorm = zeros(totBoot,length(nbSbjToInclude),length(lambda));
+aucAve = zeros(totBoot,length(noiseLevel),length(lambda));
+energyAve = zeros(totBoot,length(noiseLevel),length(lambda));
+mseAveNorm = zeros(totBoot,length(noiseLevel),length(lambda));
 
-aucWhole = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-aucROI = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-energyWhole = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-energyROI = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-mseWholeNorm = zeros(totBoot,length(nbSbjToInclude),length(lambda));
-mseROINorm = zeros(totBoot,length(nbSbjToInclude),length(lambda));
+aucWhole = zeros(totBoot,length(noiseLevel),length(lambda));
+aucROI = zeros(totBoot,length(noiseLevel),length(lambda));
+energyWhole = zeros(totBoot,length(noiseLevel),length(lambda));
+energyROI = zeros(totBoot,length(noiseLevel),length(lambda));
+mseWholeNorm = zeros(totBoot,length(noiseLevel),length(lambda));
+mseROINorm = zeros(totBoot,length(noiseLevel),length(lambda));
 
-numSubs = nbSbjToInclude;
+numSubs = 20;
 
 
-
+for repBoot=1:totBoot
+    
 % list of random sbj with replacement
 listSub = randi(length(dirList),numSubs,1);
 % since everything is fixed should sample without replacement -> RANDPERM
@@ -87,7 +86,7 @@ winERP = 46:90;
 timeBase = 1:45;
 
 %%
-
+for nn=1:length(noiseLevel)
 %%% Simulate scalp activity (Y)
 % use the generated sources to simulate scalp activity for each sbj
 % (using individual fwd model)
@@ -112,7 +111,7 @@ for iSub=1:numSubs
     % (sourceData of 20484*90) and obtain Y elec x time
     y_stim = fullFwd{iSub} * sourceData;
     % add noise
-    [noisy_data] = add_ERPnoise_with_SNR( y_stim , noiseLevel,winERP );
+    [noisy_data] = add_ERPnoise_with_SNR( y_stim , noiseLevel(nn),winERP );
     % to keep the same SNR for the 2 Y, need to compute noise for
     % the 2 Y separately as it is based on the variance of the signal
     Y(iSub,:,:) = y_stim + noisy_data;
@@ -200,8 +199,8 @@ retrieveROI = squeeze(mean(regionROI,1));
 
 % compare with average roiFwd for the participants then plot the average
 % betas on this average roiFwd
-roiMap = zeros(size(roiFwd{1},1),length(listROIs),nbSbjToInclude);
-for iSub=1:nbSbjToInclude
+roiMap = zeros(size(roiFwd{1},1),length(listROIs),numSubs);
+for iSub=1:numSubs
     for rr=1:length(listROIs)
         roiMap(:,rr,iSub) = sum([roiFwd{iSub,rr}],2);
     end
@@ -211,12 +210,12 @@ meanRoiMap = mean(roiMap,3);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% compute auc, mse, relative energy using average signal in rois
 % do for all the min norm outputs
-[aucAve(repBoot,totSbj,ll), energyAve(repBoot,totSbj,ll),...
-    mseAveNorm(repBoot,totSbj,ll),] = computeMetrics(betaAverage(:,winERP),ac_sources,srcERP(:,winERP));
-[aucWhole(repBoot,totSbj,ll), energyWhole(repBoot,totSbj,ll),...
-    mseWholeNorm(repBoot,totSbj,ll)] = computeMetrics(retrieveWhole(:,winERP),ac_sources,srcERP(:,winERP));
-[aucROI(repBoot,totSbj,ll), energyROI(repBoot,totSbj,ll),...
-    mseROINorm(repBoot,totSbj,ll)] = computeMetrics(retrieveROI(:,winERP),ac_sources,srcERP(:,winERP));
+[aucAve(repBoot,nn,ll), energyAve(repBoot,nn,ll),...
+    mseAveNorm(repBoot,nn,ll),] = computeMetrics(betaAverage(:,winERP),ac_sources,srcERP(:,winERP));
+[aucWhole(repBoot,nn,ll), energyWhole(repBoot,nn,ll),...
+    mseWholeNorm(repBoot,nn,ll)] = computeMetrics(retrieveWhole(:,winERP),ac_sources,srcERP(:,winERP));
+[aucROI(repBoot,nn,ll), energyROI(repBoot,nn,ll),...
+    mseROINorm(repBoot,nn,ll)] = computeMetrics(retrieveROI(:,winERP),ac_sources,srcERP(:,winERP));
 
 
 
@@ -240,35 +239,36 @@ meanRoiMap = mean(roiMap,3);
 %%
 end
 
+end
 
-
+end
 % save('ERPtestSNR.mat','aucAve','energyAve','mseAveNorm','aucWhole','energyWhole','mseWholeNorm',...
 %     'aucROI','energyROI','mseROINorm')
 
 
 
-%%% plot metrics
-figure;
-subplot(1,3,1);hold on;
-plot(lambda,squeeze(aucAve),'r')
-plot(lambda,squeeze(aucWhole),'g')
-plot(lambda,squeeze(aucROI),'b')
-xlabel('lambda')
-ylabel('AUC')
-ylim([0 1])
-subplot(1,3,2);hold on;
-plot(lambda,squeeze(energyAve),'r')
-plot(lambda,squeeze(energyWhole),'g')
-plot(lambda,squeeze(energyROI),'b')
-xlabel('lambda')
-ylabel('energy')
-ylim([0 1])
-subplot(1,3,3);hold on;
-plot(lambda,squeeze(mseAveNorm),'r')
-plot(lambda,squeeze(mseWholeNorm),'g')
-plot(lambda,squeeze(mseROINorm),'b')
-xlabel('lambda')
-ylabel('mse')
-ylim([0 1])
-legend('Template','Whole','ROI')
-saveas(gcf,'figures/lambdasNoisy','png')
+% %%% plot metrics
+% figure;
+% subplot(1,3,1);hold on;
+% plot(lambda,squeeze(aucAve),'r')
+% plot(lambda,squeeze(aucWhole),'g')
+% plot(lambda,squeeze(aucROI),'b')
+% xlabel('lambda')
+% ylabel('AUC')
+% ylim([0 1])
+% subplot(1,3,2);hold on;
+% plot(lambda,squeeze(energyAve),'r')
+% plot(lambda,squeeze(energyWhole),'g')
+% plot(lambda,squeeze(energyROI),'b')
+% xlabel('lambda')
+% ylabel('energy')
+% ylim([0 1])
+% subplot(1,3,3);hold on;
+% plot(lambda,squeeze(mseAveNorm),'r')
+% plot(lambda,squeeze(mseWholeNorm),'g')
+% plot(lambda,squeeze(mseROINorm),'b')
+% xlabel('lambda')
+% ylabel('mse')
+% ylim([0 1])
+% legend('Template','Whole','ROI')
+% saveas(gcf,'figures/lambdasNoisy','png')

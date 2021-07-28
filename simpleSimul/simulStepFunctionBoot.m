@@ -10,7 +10,7 @@ load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-SNRlevel = [10 200 10000]; % noise level 10% = if the signal is 10 then the noise is 10*10, for 0.5 S=50/100
+SNRlevel = [0.1 1 10 200 10000]; % 0.1 means 10 times more noise than signal, 10 means 10 times more signal than noise
 nLambdaRidge = 10; % for calculating minimum_norm, reg constant, hyper param in min norm
 % set 2 vectors of the left and right sources in the same order
 sourceL = {'V1-L','MT-L'};
@@ -432,7 +432,7 @@ ylim([0 1])
 
 subplot(3,3,7);hold on;
 plot(log(SNRlevel),squeeze(mseAveNorm(:,1,:))','LineWidth',2)
-ylabel('energy')
+ylabel('MSE')
 ylim([0 1])
 xlabel('log(SNR)')
 subplot(3,3,8);hold on;
@@ -441,7 +441,7 @@ ylim([0 1])
 subplot(3,3,9);hold on;
 plot(log(SNRlevel),squeeze(mseROINorm(:,1,:))','LineWidth',2)
 ylim([0 1])
-saveas(gcf,'figures/bootVariability','png')
+saveas(gcf,'figures/bootVariability2','png')
 
 
 
