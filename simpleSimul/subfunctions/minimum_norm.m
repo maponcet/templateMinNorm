@@ -19,3 +19,8 @@ betaMinNormBest = zeros(size(betaMinNorm{1}));
 for i = 1:size(b, 2)
     betaMinNormBest(:, i) = tikhonov(u, s, v, b(:, i), lambda);
 end
+
+fitData = G*betaMinNormBest;
+
+scalingCoef = fitData(:)\b(:);
+betaMinNormBest = betaMinNormBest*scalingCoef;
