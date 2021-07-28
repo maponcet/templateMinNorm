@@ -1,25 +1,22 @@
-function [auc, energy,mseNorm] = computeMetrics(beta,indSources,sourceOverTime)
+function [auc, energy,mseNorm] = computeMetrics(beta,sourceOverTime)
 % beta is the retrieved signal (beta values output from minimum_norm) per
 % ROI over time (here 18 ROI x 90 timepoints)
-% indSources is a vector of the activated source indexes (so length should
-% be equal to the total number of activated sources)
 % sourceOverTime is the pure (no noise) simulated activity for each ROI
 % over time
 
 %%%%% AUC
-tmp = zeros(size(beta,1),1);
-tmp(indSources,:) = 1;
 aucTime = zeros(1,size(beta,2));
 for nT = 1:size(beta,2)
-    aucTime(nT) = rocArea( abs(beta(:,nT)) , tmp );
+    aucTime(nT) = rocArea( abs(beta(:,nT)) , sourceOverTime(:,nT) );
 end
 auc = mean(aucTime);
 
 %%%%% relative energy
 norm_beta= zeros(size(beta,1),size(beta,2)); relEnergy= zeros(1,size(beta,2));
 for nT = 1:size(beta,2)
+    activ_sources = sourceOverTime(:,nT)~=0;
     norm_beta(:,nT) = beta(:,nT) / max( abs(beta(:,nT)) ); % normalise estimated sources
-    relEnergy(nT) = sum( abs( norm_beta(indSources,nT) ) ) / sum( abs(norm_beta(:,nT)) );
+    relEnergy(nT) = sum( abs( norm_beta(activ_sources,nT) ) ) / sum( abs(norm_beta(:,nT)) );
 end
 energy = mean(relEnergy);
 
