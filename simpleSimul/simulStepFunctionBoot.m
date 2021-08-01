@@ -20,8 +20,8 @@ activeROIs = [sourceL,sourceR]; % left sources then right sources to make it eas
 % find the ROI index corresponding to the activeROIs
 ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
 
-% nbSbjToInclude =[1 2 5 10 20 30 40 50];
-nbSbjToInclude =20;
+nbSbjToInclude =[2 8 20 50];
+% nbSbjToInclude =20;
 
 totBoot = 10;
 
@@ -37,12 +37,19 @@ energyROI = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 mseWholeNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 mseROINorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 
-snrRawTime = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+aucAveModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+energyAveModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+mseAveNormModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+aucROIin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+energyROIin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+mseROINormin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 
-numSubs = nbSbjToInclude;
+for totSbj=1:length(nbSbjToInclude)
+numSubs = nbSbjToInclude(totSbj);
 
 
 for repBoot=1:totBoot
+    fprintf('N%d bootstrap %d\n',numSubs,repBoot)
 % list of random sbj with replacement
 listSub = randi(length(dirList),numSubs,1);
 % since everything is fixed should sample without replacement -> RANDPERM
@@ -67,7 +74,7 @@ for iSub=1:numSubs
     end
 end
 
-%% Simulate sources (sourceERP)
+%% Simulate sources
 % 45ms baseline + 45ms signal 15ms V1 15ms MT 15ms both
 x = 0 : pi / 45 : 2 * pi-pi/45; % 360 deg with point every 4 deg
 srcAmp = zeros(numROIs,1);
@@ -81,6 +88,7 @@ winERP = 46:90;
 timeBase = 1:45;
 
 for level=1:length(SNRlevel)
+% fprintf('noise %d\n',level)
 %%
 noiseLevel = SNRlevel(level);
 
@@ -147,67 +155,29 @@ end
 
 
 
-%%% in previous code dim reduction per sbj -> results pretty bad
-%%% and nb of sbj did not matter much!
-%         %%%% test dim reduction
-%         for iSub=1:numSubs
-%             [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
-%             YloIND(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-%         end
-%         % stack sbj vertically
-%         test = permute(Y,[2 1 3]);
-%         test2 = reshape(test,[128*10,90]);
-%         n = numel(test2);
-%         [u1, s1, v1] = svd(test2);
-%         Ylo10 = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-%         unstackedData = reshape(Ylo10,128,10,size(Ylo10,2));
-%         grandMeanData = squeeze(mean(unstackedData,2));
-%         figure;plotContourOnScalp(squeeze(mean(YloIND(1:5,:,45),1)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
-%         figure;plotContourOnScalp(squeeze(mean(YloIND(1:10,:,45),1)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
-%         figure;plotContourOnScalp(squeeze(grandMeanData(:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
-%         testH = permute(Y(1:5,:,:),[2 1 3]);
-%         testH = reshape(testH,[128*5,90]);
-%         n = numel(testH);
-%         [u1, s1, v1] = svd(testH);
-%         YH = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-%         unstackedDataH = reshape(YH,128,5,size(YH,2));
-%         grandMeanDataH = squeeze(mean(unstackedDataH,2));
-%         figure;plotContourOnScalp(squeeze(grandMeanDataH(:,45)),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
-
-%         %%  reduce dimension data (Ylo)
-%         % =PCA denoised version of Y (denoised by truncation of the SVD)
-%         %%%%%% per sbj or alltogether?
-%         for iSub=1:numSubs
-%             [u1, s1, v1] = svd(squeeze(Y(iSub,:,:)));
-%             Ylo(iSub,:,:) = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-%         end
-%         % compute SNR after reduction... without -1 because i only have
-%         % signal now?
-%         snrLo = zeros(1,numSubs);snrLoTime = zeros(1,numSubs);
-%         for iSub=1:numSubs
-%             snrLo(iSub) = (rms(rms(Ylo(iSub,:,:)))/rms(rms(Y_noise(iSub,:,:)))) ^2 ;
-%             snrLoTime(iSub) = (rms(rms(Ylo(iSub,:,winERP)))/rms(rms(Ylo(iSub,:,timeBase)))) ^2 ;
-%         end
-%         snrPCA(repBoot,totSbj,level) = mean(snrLo);
-%         snrPCAtime(repBoot,totSbj,level) = mean(snrLoTime);
-
-
-
-%        % stack sbj vertically
-%        tmpY = permute(Y,[2 1 3]);
-%        tmpY2 = reshape(tmpY,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
-%        [u1, s1, v1] = svd(tmpY2);
-%        YloStack = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-%        tmpYs = permute(Y_SSVEP,[2 1 3]);
-%        tmpY2s = reshape(tmpYs,[size(fullFwd{1},1)*numSubs,length(srcERP)]);
-%        [u1, s1, v1] = svd(tmpY2s);
-%        Y_SSVEPloStack = u1(:,1:numCols)*s1(1:numCols,1:numCols)*v1(:, 1:numCols)';
-
 %% compute minimum norm
 regionWhole = zeros(numSubs,numROIs,length(srcERP));
 regionROI = zeros(numSubs,numROIs,length(srcERP));
 % min_norm on average data: get beta values for each ROI over time
-[betaAverage, betaMinNorm, lambda, gcvErrorMinNorm, lambdaGridMinNorm] = minimum_norm(avMap, squeeze(mean(Y_avg,1)), nLambdaRidge);
+% stack all the participants vertically
+stackY = reshape(permute(Y_avg,[2,1,3]),[size(Y_avg,1)*size(Y_avg,2),size(Y_avg,3)]);
+% stack the template for as many participants
+stackAvMap = repmat(avMap,numSubs,1);
+[betaAverage, betaMinNorm, lambda, gcvErrorMinNorm, lambdaGridMinNorm] = minimum_norm(stackAvMap, stackY, nLambdaRidge);
+
+
+% do a normalisation for each ROI -> unit norming
+% so that the betas represent microVolts (instead of microVolts/area size
+% as it is now)
+% unit norming is: all electrodes are squared and summed. These values are
+% then divided so that the total of the electrodes for each ROI (power) is
+% equal to 1
+regParam = sqrt(sum(avMap.^2,1));
+avMapNorm = bsxfun(@rdivide,avMap,regParam);
+stackAvMapNorm = repmat(avMapNorm,numSubs,1);
+[betaAverageModNorm, betaMinNormModNorm, lambdaModNorm, gcvErrorMinNormModNorm, lambdaGridMinNormModNorm] = ...
+    minimum_norm(stackAvMapNorm, stackY, nLambdaRidge);
+
 
 
 % for timepoint = 1:90
@@ -246,41 +216,83 @@ for iSub=1:numSubs
     % regular minimum_norm: on the 20484 indexes per sbj
     [betaWhole, betaMinNormWhole, lambdaWhole,...
         gcvErrorMinNormWhole, lambdaGridMinNormWhole] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-%     yWhole(iSub,:,:) = [fullFwd{iSub}] * betaWhole;
+    % create brain resp 
+    yWhole(iSub,:,:) = [fullFwd{iSub}] * betaWhole;
 
-%     [betaWhole, ~, lambdaWhole(iSub,level)] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-    %             [betaWhole_SSVEP, ~, lambdaWhole_SSVEP] = minimum_norm(fullFwd{iSub}, squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
-    %             [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
-    % min_norm on only the ROI indexes per sbj
     [betaROI, betaMinNormROI, lambdaROI,...
         gcvErrorMinNormROI, lambdaGridMinNormROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-%     yROI(iSub,:,:) = [roiFwd{iSub,:}] * betaROI;
-%     [betaROI, ~, lambdaROI(iSub,level)] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-    %             [betaROI_SSVEP, ~, lambdaROI_SSVEP] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_SSVEPlo(iSub,:,:)), nLambdaRidge);
-    %             [betaROIStack, ~, lambdaROIStack] = minimum_norm([roiFwd{iSub,:}], squeeze(unstackedY(:,iSub,:)), nLambdaRidge);
-    
+    yROI(iSub,:,:) = [roiFwd{iSub,:}] * betaROI;
+
     % beta values are for the indexes, but I want it per ROI
     % get the number of indexes per ROI for this subj
     rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
     % get the range
     range = [0 cumsum(rangeROI)]; % cumulative sum of elements
-    % average the beta values per ROI (=across the indexes)
-    regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    %             regionROI_SSVEP(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI_SSVEP(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    %             regionROI_Stack(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROIStack(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    % sum the beta values per ROI (=across the indexes)
+    regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+%     % average the beta values per ROI (=across the indexes)
+%     meanROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    
     % need to find the indexes for whole brain
-    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    %             regionWhole_SSVEP(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole_SSVEP(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    % create brain resp for each sbj
-    % YhatWhole(iSub,:,:) = fullFwd{iSub}*betaWhole(iSub,:,:);
+    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+
+    % test feeding ROI per sbj instead of mesh
+    sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
+    [betaROIin(:,:,iSub), betaMinNormROIin, lambdaROIin, gcvErrorMinNormROIin,...
+        lambdaGridMinNormROIin] = minimum_norm(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
 end
 % average across subj
 retrieveWhole = squeeze(mean(regionWhole,1));
 retrieveROI = squeeze(mean(regionROI,1));
-%         retrieveROI_SSVEP = squeeze(mean(regionROI_SSVEP,1));
-%         retrieveWhole_SSVEP = squeeze(mean(regionWhole_SSVEP,1));
-%         retrieveROI_Stack = squeeze(mean(regionROI_Stack,1));
+% avSumROI = squeeze(mean(sumROI,1));
+retrieveROIin = mean(betaROIin,3);
 
+% %%%% test different ways to compute betas for the ROI-informed method
+% count = 1;
+% figure;set(gcf,'position',[100,100,800,1000])
+% for iRoi = 1:2:numROIs
+%     % need to normalise the signal
+%     subplot(3,3,count);hold on
+%     plot(srcERP(iRoi,:) / max(max(abs(srcERP))) ,'LineWidth',2)
+%     plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2)
+%     plot(avSumROI(iRoi,:) / max(max(abs(avSumROI))) ,'LineWidth',2)
+%     plot(retrieveROIin(iRoi,:) / max(max(abs(retrieveROIin))) ,'LineWidth',2)
+%     legend('Source','meanROI','sumROI','ROIin','location','best')
+%     title(listROIs(iRoi))
+%     count=count+1;
+%     ylim([-1 1]);xlabel('time'); ylabel('normBeta')
+% end
+% saveas(gcf,['figures/testROImethodBeta'],'png')
+% 
+% % plot topo
+% roiMap = zeros(size(roiFwd{1},1),length(listROIs),numSubs);
+% for iSub=1:numSubs
+%     for rr=1:length(listROIs)
+%         roiMap(:,rr,iSub) = sum([roiFwd{iSub,rr}],2);
+%     end
+% end
+% meanRoiMap = mean(roiMap,3);
+% topoROI = meanRoiMap * retrieveROI;
+% topoROIsum = meanRoiMap * avSumROI;
+% topoROIin = meanRoiMap * retrieveROIin;
+% figure;set(gcf,'position',[100,100,1500,600])
+% subplot(3,4,1);plotOnEgi(squeeze(mean(Y_avg(:,:,50),1)));% colorbar
+% title('source')
+% subplot(3,4,2);plotOnEgi(topoROI(:,50));% colorbar
+% title('ROImean')
+% subplot(3,4,3);plotOnEgi(topoROIsum(:,50)); %colorbar
+% title('ROIsum')
+% subplot(3,4,4);plotOnEgi(topoROIin(:,50)); %colorbar
+% title('ROIin')
+% subplot(3,4,5);plotOnEgi(squeeze(mean(Y_avg(:,:,70),1)));% colorbar
+% subplot(3,4,6);plotOnEgi(topoROI(:,70));% colorbar
+% subplot(3,4,7);plotOnEgi(topoROIsum(:,70)); %colorbar
+% subplot(3,4,8);plotOnEgi(topoROIin(:,70)); %colorbar
+% subplot(3,4,9);plotOnEgi(squeeze(mean(Y_avg(:,:,80),1)));% colorbar
+% subplot(3,4,10);plotOnEgi(topoROI(:,80));% colorbar
+% subplot(3,4,11);plotOnEgi(topoROIsum(:,80)); %colorbar
+% subplot(3,4,12);plotOnEgi(topoROIin(:,80)); %colorbar
+% saveas(gcf,['figures/testROImethodTopo'],'png')
 
 %% TOPO
 %%%%%%%%%%%%%% 
@@ -302,181 +314,272 @@ retrieveROI = squeeze(mean(regionROI,1));
 % % figure;plotOnEgi(squeeze(mean(yROI(:,:,timepoint),1))); colorbar
 % % figure;plotOnEgi(squeeze(mean(yWhole(:,:,timepoint),1))); colorbar
 
-% compare with average roiFwd for the participants then plot the average
-% betas on this average roiFwd
-roiMap = zeros(size(roiFwd{1},1),length(listROIs),nbSbjToInclude);
-for iSub=1:nbSbjToInclude
-    for rr=1:length(listROIs)
-        roiMap(:,rr,iSub) = sum([roiFwd{iSub,rr}],2);
-    end
-end
-meanRoiMap = mean(roiMap,3);
-
-% % plot topo
-% topoNew = avMap * betaAverage;
-% topoNewNorm = avMap * betaAverageModNorm;
-% topoWhole = meanRoiMap * retrieveWhole;
-% topoROI = meanRoiMap * retrieveROI;
-% figure;set(gcf,'position',[100,100,2300,1000])
-% subplot(3,8,1);plotOnEgi(squeeze(mean(Y(:,:,50),1))); colorbar
-% subplot(3,8,2);plotOnEgi(squeeze(mean(Y_avg(:,:,50),1))); colorbar
-% subplot(3,8,3);plotOnEgi(topoNew(:,50)); colorbar
-% subplot(3,8,4);plotOnEgi(topoWhole(:,50)); colorbar
-% subplot(3,8,5);plotOnEgi(squeeze(mean(yWhole(:,:,50),1))); colorbar
-% subplot(3,8,6);plotOnEgi(topoROI(:,50)); colorbar
-% subplot(3,8,7);plotOnEgi(squeeze(mean(yROI(:,:,50),1))); colorbar
-% subplot(3,8,8);plotOnEgi(topoNewNorm(:,50)); colorbar
-% 
-% subplot(3,8,9);plotOnEgi(squeeze(mean(Y(:,:,70),1))); colorbar
-% subplot(3,8,10);plotOnEgi(squeeze(mean(Y_avg(:,:,70),1))); colorbar
-% subplot(3,8,11);plotOnEgi(topoNew(:,70)); colorbar
-% subplot(3,8,12);plotOnEgi(topoWhole(:,70)); colorbar
-% subplot(3,8,13);plotOnEgi(squeeze(mean(yWhole(:,:,70),1))); colorbar
-% subplot(3,8,14);plotOnEgi(topoROI(:,70)); colorbar
-% subplot(3,8,15);plotOnEgi(squeeze(mean(yROI(:,:,70),1))); colorbar
-% subplot(3,8,16);plotOnEgi(topoNewNorm(:,70)); colorbar
-% 
-% subplot(3,8,17);plotOnEgi(squeeze(mean(Y(:,:,80),1))); colorbar
-% subplot(3,8,18);plotOnEgi(squeeze(mean(Y_avg(:,:,80),1))); colorbar
-% subplot(3,8,19);plotOnEgi(topoNew(:,80)); colorbar
-% subplot(3,8,20);plotOnEgi(topoWhole(:,80)); colorbar
-% subplot(3,8,21);plotOnEgi(squeeze(mean(yWhole(:,:,80),1))); colorbar
-% subplot(3,8,22);plotOnEgi(topoROI(:,80)); colorbar
-% subplot(3,8,23);plotOnEgi(squeeze(mean(yROI(:,:,80),1))); colorbar
-% subplot(3,8,24);plotOnEgi(topoNewNorm(:,80)); colorbar
-% 
-% saveas(gcf,['figures/topoN' num2str(level)],'png')
-% order: 3 rows = V1, MT, V1+MT
-% columns = source Y, average topo from each simul ind, template results,
-% whole results from average betas, whole from average voltage (betas put
-% into topo first for each sbj then average topo), roi results from betas,
-% roi results from average voltages, normalised template 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% compute auc, mse, relative energy using average signal in rois
 % do for all the min norm outputs
-totSbj=1;
 [aucAve(repBoot,totSbj,level), energyAve(repBoot,totSbj,level),...
-    mseAveNorm(repBoot,totSbj,level),] = computeMetrics(betaAverage(:,winERP),ac_sources,srcERP(:,winERP));
+    mseAveNorm(repBoot,totSbj,level),] = computeMetrics(betaAverage(:,winERP),srcERP(:,winERP));
 [aucWhole(repBoot,totSbj,level), energyWhole(repBoot,totSbj,level),...
-    mseWholeNorm(repBoot,totSbj,level)] = computeMetrics(retrieveWhole(:,winERP),ac_sources,srcERP(:,winERP));
+    mseWholeNorm(repBoot,totSbj,level)] = computeMetrics(retrieveWhole(:,winERP),srcERP(:,winERP));
 [aucROI(repBoot,totSbj,level), energyROI(repBoot,totSbj,level),...
-    mseROINorm(repBoot,totSbj,level)] = computeMetrics(retrieveROI(:,winERP),ac_sources,srcERP(:,winERP));
+    mseROINorm(repBoot,totSbj,level)] = computeMetrics(retrieveROI(:,winERP),srcERP(:,winERP));
+
+[aucAveModNorm(repBoot,totSbj,level), energyAveModNorm(repBoot,totSbj,level),...
+    mseAveNormModNorm(repBoot,totSbj,level),] = computeMetrics(betaAverageModNorm(:,winERP),srcERP(:,winERP));
+[aucROIin(repBoot,totSbj,level), energyROIin(repBoot,totSbj,level),...
+    mseROINormin(repBoot,totSbj,level)] = computeMetrics(retrieveROIin(:,winERP),srcERP(:,winERP));
 
 
-
-
-% %% plot BETAs for 1st bootstrap average sbj & ERPs for V1 only
-% count = 1;
-% figure;set(gcf,'position',[100,100,800,1000])
-% for iRoi = 1:2:numROIs
-%     % need to normalise the signal
-%     subplot(3,3,count);hold on
-%     plot(srcERP(iRoi,:) / max(max(abs(srcERP))) )
-%     plot(betaAverage(iRoi,:) / max(max(abs(betaAverage))) )
-%     plot(retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) )
-%     plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) )
-%     legend('Source','temp','whole','roi','location','best')
-%     title(listROIs(iRoi))
-%     count=count+1;
+% %% Plots for 1st bootstrap
+% if repBoot==1
+%     %%% plot BETAs
+%     count = 1;
+%     figure;set(gcf,'position',[100,100,800,1000])
+%     for iRoi = 1:2:numROIs
+%         % need to normalise the signal
+%         subplot(3,3,count);hold on
+%         plot(srcERP(iRoi,:) / max(max(abs(srcERP))) ,'LineWidth',2)
+%         plot(betaAverage(iRoi,:) / max(max(abs(betaAverage))) ,'LineWidth',2)
+%         plot(retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2)
+%         plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2)
+%         legend('Source','template','whole','roi','location','best')
+%         title(listROIs(iRoi))
+%         count=count+1;
+%         ylim([-1 1]);xlabel('time'); ylabel('normBeta')
+%     end
+%     saveas(gcf,['figures/betaStepSNR' num2str(SNRlevel(level))],'png')
+%     %%% plot topo
+%     % compare with average roiFwd for the participants then plot the average
+%     % betas on this average roiFwd
+%     roiMap = zeros(size(roiFwd{1},1),length(listROIs),numSubs);
+%     for iSub=1:numSubs
+%         for rr=1:length(listROIs)
+%             roiMap(:,rr,iSub) = sum([roiFwd{iSub,rr}],2);
+%         end
+%     end
+%     meanRoiMap = mean(roiMap,3);
+%     
+%     % plot topo
+%     topoNew = avMap * betaAverage;
+%     topoNewNorm = avMap * betaAverageModNorm;
+%     topoWhole = meanRoiMap * retrieveWhole;
+%     topoROI = meanRoiMap * retrieveROI;
+%     topoROIin = meanRoiMap * retrieveROIin;
+%     figure;set(gcf,'position',[100,100,2300,1000])
+%     subplot(3,8,1);plotOnEgi(squeeze(mean(Y(:,:,50),1)));% colorbar
+%     subplot(3,8,2);plotOnEgi(topoNew(:,50));% colorbar
+%     subplot(3,8,3);plotOnEgi(topoNewNorm(:,50));% colorbar
+%     subplot(3,8,4);plotOnEgi(topoWhole(:,50)); %colorbar
+%     subplot(3,8,5);plotOnEgi(squeeze(mean(yWhole(:,:,50),1))); %colorbar
+%     subplot(3,8,6);plotOnEgi(topoROI(:,50));% colorbar
+%     subplot(3,8,7);plotOnEgi(squeeze(mean(yROI(:,:,50),1)));% colorbar
+%     subplot(3,8,8);plotOnEgi(topoROIin(:,50));% colorbar
+%     
+%     subplot(3,8,9);plotOnEgi(squeeze(mean(Y(:,:,70),1)));%colorbar
+%     subplot(3,8,10);plotOnEgi(topoNew(:,70)); %colorbar
+%     subplot(3,8,11);plotOnEgi(topoNewNorm(:,70)); %colorbar
+%     subplot(3,8,12);plotOnEgi(topoWhole(:,70)); %colorbar
+%     subplot(3,8,13);plotOnEgi(squeeze(mean(yWhole(:,:,70),1))); %colorbar
+%     subplot(3,8,14);plotOnEgi(topoROI(:,70)); %colorbar
+%     subplot(3,8,15);plotOnEgi(squeeze(mean(yROI(:,:,70),1))); %colorbar
+%     subplot(3,8,16);plotOnEgi(topoROIin(:,70)); %colorbar
+%     
+%     subplot(3,8,17);plotOnEgi(squeeze(mean(Y(:,:,80),1))); %colorbar
+%     subplot(3,8,18);plotOnEgi(topoNew(:,80)); %colorbar
+%     subplot(3,8,19);plotOnEgi(topoNewNorm(:,80)); %colorbar
+%     subplot(3,8,20);plotOnEgi(topoWhole(:,80)); %colorbar
+%     subplot(3,8,21);plotOnEgi(squeeze(mean(yWhole(:,:,80),1))); %colorbar
+%     subplot(3,8,22);plotOnEgi(topoROI(:,80)); %colorbar
+%     subplot(3,8,23);plotOnEgi(squeeze(mean(yROI(:,:,80),1))); %colorbar
+%     subplot(3,8,24);plotOnEgi(topoROIin(:,80)); %colorbar
+%     
+%     saveas(gcf,['figures/topoStepN' num2str(SNRlevel(level))],'png')
+%     % order: 3 rows = V1, MT, V1+MT
+%     % columns = source Y, average topo from each simul ind, template results,
+%     % whole results from average betas, whole from average voltage (betas put
+%     % into topo first for each sbj then average topo), roi results from betas,
+%     % roi results from average voltages, normalised template
 % end
-% saveas(gcf,['figures/betasN' num2str(level)],'png')
-% count = 1;
-% figure;set(gcf,'position',[100,100,800,1000])
-% for iRoi = 1:2:numROIs
-%     subplot(3,3,count);hold on
-%     plot(srcERP(iRoi,:)  )
-%     plot(betaAverage(iRoi,:)  )
-%     plot(retrieveWhole(iRoi,:)  )
-%     plot(retrieveROI(iRoi,:)  )
-%     legend('Source','temp','whole','roi','location','best')
-%     title(listROIs(iRoi))
-%     count=count+1;
-% end
-% saveas(gcf,['figures/betasUnnormN' num2str(level)],'png')
 
 %%
 end
 
 end
-
+end
 % save('ERPtestSNR.mat','aucAve','energyAve','mseAveNorm','aucWhole','energyWhole','mseWholeNorm',...
 %     'aucROI','energyROI','mseROINorm')
 
-%%% plot metrics
-figure;set(gcf,'position',[100,100,800,1200])
-subplot(3,3,1);hold on;
-plot(log(SNRlevel),squeeze(aucAve(:,1,:))','LineWidth',2)
-ylabel('AUC')
-ylim([0 1])
-title('template')
-subplot(3,3,2);hold on;
-plot(log(SNRlevel),squeeze(aucWhole(:,1,:))','LineWidth',2)
-ylim([0 1])
-title('whole')
-subplot(3,3,3);hold on;
-plot(log(SNRlevel),squeeze(aucROI(:,1,:))','LineWidth',2)
-ylim([0 1])
-title('ROI')
-
-subplot(3,3,4);hold on;
-plot(log(SNRlevel),squeeze(energyAve(:,1,:))','LineWidth',2)
-ylabel('energy')
-ylim([0 1])
-subplot(3,3,5);hold on;
-plot(log(SNRlevel),squeeze(energyWhole(:,1,:))','LineWidth',2)
-ylim([0 1])
-subplot(3,3,6);hold on;
-plot(log(SNRlevel),squeeze(energyROI(:,1,:))','LineWidth',2)
-ylim([0 1])
-
-subplot(3,3,7);hold on;
-plot(log(SNRlevel),squeeze(mseAveNorm(:,1,:))','LineWidth',2)
-ylabel('MSE')
-ylim([0 1])
-xlabel('log(SNR)')
-subplot(3,3,8);hold on;
-plot(log(SNRlevel),squeeze(mseWholeNorm(:,1,:))','LineWidth',2)
-ylim([0 1])
-subplot(3,3,9);hold on;
-plot(log(SNRlevel),squeeze(mseROINorm(:,1,:))','LineWidth',2)
-ylim([0 1])
-saveas(gcf,'figures/bootVariability2','png')
-
-
-
 
 % %%% plot metrics
+% figure;set(gcf,'position',[100,100,800,1200])
+% subplot(3,3,1);hold on;
+% plot(log(SNRlevel),squeeze(aucAve(:,1,:))','LineWidth',2)
+% ylabel('AUC')
+% ylim([0 1])
+% title('template')
+% subplot(3,3,2);hold on;
+% plot(log(SNRlevel),squeeze(aucWhole(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% title('whole')
+% subplot(3,3,3);hold on;
+% plot(log(SNRlevel),squeeze(aucROI(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% title('ROI')
+% 
+% subplot(3,3,4);hold on;
+% plot(log(SNRlevel),squeeze(energyAve(:,1,:))','LineWidth',2)
+% ylabel('energy')
+% ylim([0 1])
+% subplot(3,3,5);hold on;
+% plot(log(SNRlevel),squeeze(energyWhole(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% subplot(3,3,6);hold on;
+% plot(log(SNRlevel),squeeze(energyROI(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% 
+% subplot(3,3,7);hold on;
+% plot(log(SNRlevel),squeeze(mseAveNorm(:,1,:))','LineWidth',2)
+% ylabel('MSE')
+% ylim([0 1])
+% xlabel('log(SNR)')
+% subplot(3,3,8);hold on;
+% plot(log(SNRlevel),squeeze(mseWholeNorm(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% subplot(3,3,9);hold on;
+% plot(log(SNRlevel),squeeze(mseROINorm(:,1,:))','LineWidth',2)
+% ylim([0 1])
+% saveas(gcf,['figures' filesep 'bootVariabilityNtot'],'png')
+
+%%% plot metrics
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucAve(:,ss,:))),squeeze(std(aucAve(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('template')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyAve(:,ss,:))),squeeze(std(energyAve(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:))),squeeze(std(mseAveNorm(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNtemplate'],'png')
+
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucAveModNorm(:,ss,:))),squeeze(std(aucAveModNorm(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('templateNorm')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyAveModNorm(:,ss,:))),squeeze(std(energyAveModNorm(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseAveNormModNorm(:,ss,:))),squeeze(std(mseAveNormModNorm(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNtemplateModNorm'],'png')
+
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucWhole(:,ss,:))),squeeze(std(aucWhole(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('Whole')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyWhole(:,ss,:))),squeeze(std(energyWhole(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseWholeNorm(:,ss,:))),squeeze(std(mseWholeNorm(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNWhole'],'png')
+
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucROI(:,ss,:))),squeeze(std(aucROI(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('ROI')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyROI(:,ss,:))),squeeze(std(energyROI(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseROINorm(:,ss,:))),squeeze(std(mseROINorm(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNROI'],'png')
+
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucROIin(:,ss,:))),squeeze(std(aucROIin(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('ROIin')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyROIin(:,ss,:))),squeeze(std(energyROIin(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseROINormin(:,ss,:))),squeeze(std(mseROINormin(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNROIin'],'png')
+
+
+
 % lineCOL={':r',':b',':g','--r','--b','--g','-r','-b','-g'};
 % figure;
 % subplot(1,3,1);hold on;
 % for ss=1:length(nbSbjToInclude)
-%     errorbar(SNRlevel,squeeze(mean(aucAve(:,ss,:))),squeeze(std(aucAve(:,ss,:))),lineCOL{1+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(aucWhole(:,ss,:))),squeeze(std(aucWhole(:,ss,:))),lineCOL{2+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(aucROI(:,ss,:))),squeeze(std(aucROI(:,ss,:))),lineCOL{3+(ss-1)*3})
+% errorbar(log(SNRlevel),squeeze(mean(aucAve(:,ss,:))),squeeze(std(aucAve(:,ss,:),1)),lineCOL{1+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(aucWhole(:,ss,:))),squeeze(std(aucWhole(:,ss,:))),lineCOL{2+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(aucROI(:,ss,:))),squeeze(std(aucROI(:,ss,:))),lineCOL{3+(ss-1)*3},'LineWidth',2)
 % end
-% xlabel('SNR (1sbj)')
+% xlabel('log(SNR)')
 % ylabel('AUC')
 % ylim([0 1])
 % subplot(1,3,2);hold on;
-% for ss=1:length(nbSbjToInclude)
-%     errorbar(SNRlevel,squeeze(mean(energyAve(:,ss,:))),squeeze(std(energyAve(:,ss,:))),lineCOL{1+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(energyWhole(:,ss,:))),squeeze(std(energyWhole(:,ss,:))),lineCOL{2+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(energyROI(:,ss,:))),squeeze(std(energyROI(:,ss,:))),lineCOL{3+(ss-1)*3})
-% end
-% xlabel('SNR (1sbj)')
+% errorbar(log(SNRlevel),squeeze(mean(energyAve(:,ss,:))),squeeze(std(energyAve(:,ss,:))),lineCOL{1+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(energyWhole(:,ss,:))),squeeze(std(energyWhole(:,ss,:))),lineCOL{2+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(energyROI(:,ss,:))),squeeze(std(energyROI(:,ss,:))),lineCOL{3+(ss-1)*3},'LineWidth',2)
+% xlabel('log(SNR)')
 % ylabel('Energy')
 % ylim([0 1])
 % subplot(1,3,3);hold on;
-% for ss=1:length(nbSbjToInclude)
-%     errorbar(SNRlevel,squeeze(mean(mseAveNorm(:,ss,:))),squeeze(std(mseAveNorm(:,ss,:))),lineCOL{1+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(mseWholeNorm(:,ss,:))),squeeze(std(mseWholeNorm(:,ss,:))),lineCOL{2+(ss-1)*3})
-%     errorbar(SNRlevel,squeeze(mean(mseROINorm(:,ss,:))),squeeze(std(mseROINorm(:,ss,:))),lineCOL{3+(ss-1)*3})
-% end
-% xlabel('SNR (1sbj)')
+% errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:))),squeeze(std(mseAveNorm(:,ss,:))),lineCOL{1+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(mseWholeNorm(:,ss,:))),squeeze(std(mseWholeNorm(:,ss,:))),lineCOL{2+(ss-1)*3},'LineWidth',2)
+% errorbar(log(SNRlevel),squeeze(mean(mseROINorm(:,ss,:))),squeeze(std(mseROINorm(:,ss,:))),lineCOL{3+(ss-1)*3},'LineWidth',2)
+% xlabel('log(SNR)')
 % ylabel('MSEnorm')
 % ylim([0 1])
-% legend('3New','3Whole','3ROI','20New','20Whole','20ROI','50New','50Whole','50ROI')
+% legend('20Template','20Whole','20ROI')
 % set(gcf,'position',[100,100,1200,400])
-% % saveas(gcf,['figures' filesep 'testERPsnr'],'png')
+% saveas(gcf,['figures' filesep 'SNRnTot'],'png')
     
