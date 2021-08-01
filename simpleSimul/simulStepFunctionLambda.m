@@ -211,11 +211,11 @@ meanRoiMap = mean(roiMap,3);
 %% compute auc, mse, relative energy using average signal in rois
 % do for all the min norm outputs
 [aucAve(repBoot,nn,ll), energyAve(repBoot,nn,ll),...
-    mseAveNorm(repBoot,nn,ll),] = computeMetrics(betaAverage(:,winERP),ac_sources,srcERP(:,winERP));
+    mseAveNorm(repBoot,nn,ll),] = computeMetrics(betaAverage(:,winERP),srcERP(:,winERP));
 [aucWhole(repBoot,nn,ll), energyWhole(repBoot,nn,ll),...
-    mseWholeNorm(repBoot,nn,ll)] = computeMetrics(retrieveWhole(:,winERP),ac_sources,srcERP(:,winERP));
+    mseWholeNorm(repBoot,nn,ll)] = computeMetrics(retrieveWhole(:,winERP),srcERP(:,winERP));
 [aucROI(repBoot,nn,ll), energyROI(repBoot,nn,ll),...
-    mseROINorm(repBoot,nn,ll)] = computeMetrics(retrieveROI(:,winERP),ac_sources,srcERP(:,winERP));
+    mseROINorm(repBoot,nn,ll)] = computeMetrics(retrieveROI(:,winERP),srcERP(:,winERP));
 
 
 
@@ -247,28 +247,36 @@ end
 
 
 
-% %%% plot metrics
-% figure;
-% subplot(1,3,1);hold on;
-% plot(lambda,squeeze(aucAve),'r')
-% plot(lambda,squeeze(aucWhole),'g')
-% plot(lambda,squeeze(aucROI),'b')
-% xlabel('lambda')
-% ylabel('AUC')
-% ylim([0 1])
-% subplot(1,3,2);hold on;
-% plot(lambda,squeeze(energyAve),'r')
-% plot(lambda,squeeze(energyWhole),'g')
-% plot(lambda,squeeze(energyROI),'b')
-% xlabel('lambda')
-% ylabel('energy')
-% ylim([0 1])
-% subplot(1,3,3);hold on;
-% plot(lambda,squeeze(mseAveNorm),'r')
-% plot(lambda,squeeze(mseWholeNorm),'g')
-% plot(lambda,squeeze(mseROINorm),'b')
-% xlabel('lambda')
-% ylabel('mse')
-% ylim([0 1])
-% legend('Template','Whole','ROI')
-% saveas(gcf,'figures/lambdasNoisy','png')
+%%% plot metrics
+lineCOL={':r',':b',':g','-r','-b','-g'};
+figure;
+subplot(1,3,1);hold on;
+for noise=1:2
+plot(lambda,squeeze(mean(aucAve(:,noise,:),1)),lineCOL{1+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(aucWhole(:,noise,:),1)),lineCOL{2+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(aucROI(:,noise,:),1)),lineCOL{3+(noise-1)*3},'LineWidth',2)
+end
+xlabel('lambda')
+ylabel('AUC')
+ylim([0 1])
+subplot(1,3,2);hold on;
+for noise=1:2
+plot(lambda,squeeze(mean(energyAve(:,noise,:),1)),lineCOL{1+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(energyWhole(:,noise,:),1)),lineCOL{2+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(energyROI(:,noise,:),1)),lineCOL{3+(noise-1)*3},'LineWidth',2)
+end
+xlabel('lambda')
+ylabel('energy')
+ylim([0 1])
+subplot(1,3,3);hold on;
+for noise=1:2
+plot(lambda,squeeze(mean(mseAveNorm(:,noise,:),1)),lineCOL{1+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(mseWholeNorm(:,noise,:),1)),lineCOL{2+(noise-1)*3},'LineWidth',2)
+plot(lambda,squeeze(mean(mseROINorm(:,noise,:),1)),lineCOL{3+(noise-1)*3},'LineWidth',2)
+end
+xlabel('lambda')
+ylabel('mse')
+ylim([0 1])
+legend('TemplateSNR1','WholeSNR1','ROISNR1','TemplateSNR100','WholeSNR100','ROISNR100')
+saveas(gcf,'figures/lambdas','png')
+

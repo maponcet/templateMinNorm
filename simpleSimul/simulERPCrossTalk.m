@@ -13,8 +13,8 @@ numSubs = length(dirList);
 
 % some parameters
 nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
-SNRlevel = 100; % noise level 
-totBoot = 1; % nb of bootstrap
+SNRlevel = 1000; % noise level 
+totBoot = 10; % nb of bootstrap
 crossTalkTemplate = zeros(totBoot,numROIs,numROIs);
 crossTalkWhole = zeros(totBoot,numROIs,numROIs);
 crossTalkROI = zeros(totBoot,numROIs,numROIs);
@@ -25,7 +25,7 @@ for seedRoi = 1:numROIs
     ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
     
     for repBoot =1:totBoot
-        fprintf('sim%d bootstrap %d \n',seedRoi,repBoot);
+        fprintf('seed%d bootstrap %d \n',seedRoi,repBoot);
         clear Y source signal Ylo betaReg betaMinNorm
         
         % list of random sbj with replacement
@@ -61,7 +61,8 @@ for seedRoi = 1:numROIs
         %% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj 
         % (using individual fwd model)
-        Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));        
+        Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));   
+        Y_avg = Y;
         for iSub=1:numSubs
             % initialise matrix of source activity
             sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
@@ -89,15 +90,20 @@ for seedRoi = 1:numROIs
         % this is done by bsxfun which applies element-wise substraction (the 90
         % averages across electrodes)
         for iSub=1:numSubs
-            Y(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
+            Y_avg(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
         end
 
 
         %% compute minimum norm
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));        
-        % min_norm on average data: get beta values for each ROI over time 
-        [betaAverage, ~, lambdaAverage] = minimum_norm(avMap, squeeze(mean(Y,1)), nLambdaRidge);
+        % min_norm: get beta values for each ROI over time 
+        % stack all the participants vertically
+        stackY = reshape(permute(Y_avg,[2,1,3]),[size(Y_avg,1)*size(Y_avg,2),size(Y_avg,3)]);
+        % stack the template for as many participants
+        stackAvMap = repmat(avMap,numSubs,1);
+        [betaAverage, betaMinNorm, lambda, gcvErrorMinNorm, lambdaGridMinNorm] = minimum_norm(stackAvMap, stackY, nLambdaRidge);
+
         for iSub=1:numSubs
             % regular minimum_norm: on the 20484 indexes per sbj
             [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Y(iSub,:,:)), nLambdaRidge);
@@ -109,10 +115,10 @@ for seedRoi = 1:numROIs
             rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
             % get the range
             range = [0 cumsum(rangeROI)]; % cumulative sum of elements
-            % average the beta values per ROI (=across the indexes)
-            regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
+            % SUM (not average) the beta values per ROI (=across the indexes)
+            regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
            % need to find the indexes for whole brain
-            regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+            regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
         end
         % average across subj
         retrieveWhole = squeeze(mean(regionWhole,1));
@@ -130,45 +136,79 @@ for seedRoi = 1:numROIs
             crossTalkROI(repBoot,seedRoi,iRoi) = rms(retrieveROI(iRoi,:)) / normTermROI;
         end
         
+        
+        
+%         count = 1;
+%         figure;set(gcf,'position',[100,100,800,1000])
+%         for iRoi = 1:2:numROIs
+%             % need to normalise the signal
+%             subplot(3,3,count);hold on
+%             plot(srcERP(iRoi,:) / max(max(abs(srcERP))) ,'LineWidth',2);
+%             plot(srcERP(iRoi+1,:) / max(max(abs(srcERP))) ,'LineWidth',2);
+%             tt = cell2mat(listROIs(iRoi));title(tt(1:end-2) ,'LineWidth',2)
+%             ylim([-1 1]);count=count+1;
+%         end
+%         count = 1;
+%         figure;set(gcf,'position',[100,100,800,1000])
+%         for iRoi = 1:2:numROIs
+%             % need to normalise the signal
+%             subplot(3,3,count);hold on
+%             plot(betaAverage(iRoi,:) / max(max(abs(betaAverage))) ,'LineWidth',2);
+%             plot(betaAverage(iRoi+1,:) / max(max(abs(betaAverage))) ,'LineWidth',2);
+%             tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%             ylim([-1 1]);count=count+1;
+%         end        
+%         count = 1;
+%         figure;set(gcf,'position',[100,100,800,1000])
+%         for iRoi = 1:2:numROIs
+%             % need to normalise the signal
+%             subplot(3,3,count);hold on
+%             plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2);
+%             plot(retrieveROI(iRoi+1,:) / max(max(abs(retrieveROI))) ,'LineWidth',2);
+%             tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%             ylim([-1 1]);count=count+1;
+%         end   
+        
     end % end boostrap
     
 end % different activated sources
 
-% figure;
-% subplot(3,1,1);imagesc(squeeze(mean(crossTalkTemplate)));colorbar;caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)  
-% ylabel('seedArea');xlabel('predictArea')
-% title('templateBased')
-% subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole)));colorbar;caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
-% ylabel('seedArea');xlabel('predictArea')
-% title('Whole MinNorm')
-% subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI)));colorbar;caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
-% ylabel('seedArea');xlabel('predictArea')
-% title('ROI MinNorm')
-% set(gcf,'position',[100,100,800,1800])
-% saveas(gcf,['figures' filesep 'ERPcrossTalkNoise'],'png')
-
-
 figure;
-subplot(3,1,1);imagesc(squeeze(crossTalkTemplate(1,[1:2:18 2:2:18],[1:2:18 2:2:18])));colorbar;%caxis([0 1])
+subplot(3,1,1);
+imagesc(squeeze(mean(crossTalkTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
 ylabel('seedArea');xlabel('predictArea')
 title('templateBased')
-subplot(3,1,2);imagesc(squeeze((crossTalkWhole(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
 ylabel('seedArea');xlabel('predictArea')
 title('Whole MinNorm')
-subplot(3,1,3);imagesc(squeeze((crossTalkROI(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('ROI MinNorm')
 set(gcf,'position',[100,100,800,1800])
-saveas(gcf,['figures' filesep 'ERPcrossTalkNoNoise2'],'png')
+saveas(gcf,['figures' filesep 'ERPcrossTalkSNR1000'],'png')
+
+
+% figure;
+% subplot(3,1,1);imagesc(squeeze(crossTalkTemplate(1,[1:2:18 2:2:18],[1:2:18 2:2:18])));colorbar;%caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
+% ylabel('seedArea');xlabel('predictArea')
+% title('templateBased')
+% subplot(3,1,2);imagesc(squeeze((crossTalkWhole(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+% ylabel('seedArea');xlabel('predictArea')
+% title('Whole MinNorm')
+% subplot(3,1,3);imagesc(squeeze((crossTalkROI(1,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+% ylabel('seedArea');xlabel('predictArea')
+% title('ROI MinNorm')
+% set(gcf,'position',[100,100,800,1800])
+% saveas(gcf,['figures' filesep 'ERPcrossTalkNoNoise2'],'png')
