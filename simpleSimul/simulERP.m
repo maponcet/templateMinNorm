@@ -40,6 +40,9 @@ mseROINorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 aucAveModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 energyAveModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 mseAveNormModNorm = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+aucROIin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+energyROIin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
+mseROINormin = zeros(totBoot,length(nbSbjToInclude),length(SNRlevel));
 
 for totSbj=1:length(nbSbjToInclude)
 numSubs = nbSbjToInclude(totSbj);
@@ -232,13 +235,19 @@ for iSub=1:numSubs
     % SUM (not average) the beta values per ROI (=across the indexes)
     regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
 
-    % need to find the indexes for whole brain
-    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-
+    % need to find the indexes for whole brain -> use idxROIfwd
+    % (no need to get the range)
+    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+    
+    % test feeding ROI per sbj instead of mesh
+    sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
+    [betaROIin(:,:,iSub), betaMinNormROIin, lambdaROIin, gcvErrorMinNormROIin,...
+        lambdaGridMinNormROIin] = minimum_norm(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
 end
 % average across subj
 retrieveWhole = squeeze(mean(regionWhole,1));
 retrieveROI = squeeze(mean(regionROI,1));
+retrieveROIin = mean(betaROIin,3);
 
 
 
@@ -275,6 +284,8 @@ retrieveROI = squeeze(mean(regionROI,1));
 
 [aucAveModNorm(repBoot,totSbj,level), energyAveModNorm(repBoot,totSbj,level),...
     mseAveNormModNorm(repBoot,totSbj,level),] = computeMetrics(betaAverageModNorm(:,winERP),srcERP(:,winERP));
+[aucROIin(repBoot,totSbj,level), energyROIin(repBoot,totSbj,level),...
+    mseROINormin(repBoot,totSbj,level)] = computeMetrics(retrieveROIin(:,winERP),srcERP(:,winERP));
 
 %% Plots for 1st bootstrap
 if repBoot==1 && numSubs >10

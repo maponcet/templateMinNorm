@@ -216,13 +216,13 @@ for iSub=1:numSubs
     % regular minimum_norm: on the 20484 indexes per sbj
     [betaWhole, betaMinNormWhole, lambdaWhole,...
         gcvErrorMinNormWhole, lambdaGridMinNormWhole] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-    % create brain resp 
+    % create brain resp
     yWhole(iSub,:,:) = [fullFwd{iSub}] * betaWhole;
-
+    
     [betaROI, betaMinNormROI, lambdaROI,...
         gcvErrorMinNormROI, lambdaGridMinNormROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
     yROI(iSub,:,:) = [roiFwd{iSub,:}] * betaROI;
-
+    
     % beta values are for the indexes, but I want it per ROI
     % get the number of indexes per ROI for this subj
     rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
@@ -230,12 +230,13 @@ for iSub=1:numSubs
     range = [0 cumsum(rangeROI)]; % cumulative sum of elements
     % sum the beta values per ROI (=across the indexes)
     regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-%     % average the beta values per ROI (=across the indexes)
-%     meanROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    %     % average the beta values per ROI (=across the indexes)
+    %     meanROI(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
     
-    % need to find the indexes for whole brain
-    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-
+    % need to find the indexes for whole brain -> use idxROIfwd
+    % (no need to get the range)
+    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+    
     % test feeding ROI per sbj instead of mesh
     sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
     [betaROIin(:,:,iSub), betaMinNormROIin, lambdaROIin, gcvErrorMinNormROIin,...

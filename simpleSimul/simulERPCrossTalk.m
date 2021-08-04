@@ -13,7 +13,7 @@ numSubs = length(dirList);
 
 % some parameters
 nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
-SNRlevel = 1000; % noise level 
+SNRlevel = 10; % noise level 
 totBoot = 10; % nb of bootstrap
 crossTalkTemplate = zeros(totBoot,numROIs,numROIs);
 crossTalkWhole = zeros(totBoot,numROIs,numROIs);
@@ -105,10 +105,11 @@ for seedRoi = 1:numROIs
         [betaAverage, betaMinNorm, lambda, gcvErrorMinNorm, lambdaGridMinNorm] = minimum_norm(stackAvMap, stackY, nLambdaRidge);
 
         for iSub=1:numSubs
+            clear betaWhole betaROI
             % regular minimum_norm: on the 20484 indexes per sbj
-            [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Y(iSub,:,:)), nLambdaRidge);
+            [betaWhole, ~, lambdaWhole] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
             % min_norm on only the ROI indexes per sbj
-            [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Y(iSub,:,:)), nLambdaRidge);
+            [betaROI, ~, lambdaROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
 
             % beta values are for the indexes, but I want it per ROI
             % get the number of indexes per ROI for this subj
@@ -117,12 +118,25 @@ for seedRoi = 1:numROIs
             range = [0 cumsum(rangeROI)]; % cumulative sum of elements
             % SUM (not average) the beta values per ROI (=across the indexes)
             regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)'); 
-           % need to find the indexes for whole brain
-            regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+                      
+            % need to find the indexes for whole brain -> use idxROIfwd
+            % (no need to get the range)
+            regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+                        
+%             % check ind topo....
+%             figure;subplot(1,3,1)
+%             plotOnEgi(squeeze(Y(iSub,:,nT)))
+%             subplot(1,3,2)
+%             yWhole(iSub,:,:) = [fullFwd{iSub}] * betaWhole;
+%             plotOnEgi(squeeze(yWhole(iSub,:,nT)))
+%             subplot(1,3,3)
+%             yROI(iSub,:,:) = [roiFwd{iSub,:}] * betaROI;
+%             plotOnEgi(squeeze(yROI(iSub,:,nT)))
         end
         % average across subj
         retrieveWhole = squeeze(mean(regionWhole,1));
         retrieveROI = squeeze(mean(regionROI,1));
+
         
         %% amount of crosstalk
         % leakage: amplitude signal in all areas, the "true" one is used
@@ -135,9 +149,7 @@ for seedRoi = 1:numROIs
             crossTalkWhole(repBoot,seedRoi,iRoi) = rms(retrieveWhole(iRoi,:)) / normTermWhole;
             crossTalkROI(repBoot,seedRoi,iRoi) = rms(retrieveROI(iRoi,:)) / normTermROI;
         end
-        
-        
-        
+            
 %         count = 1;
 %         figure;set(gcf,'position',[100,100,800,1000])
 %         for iRoi = 1:2:numROIs
@@ -175,23 +187,23 @@ end % different activated sources
 
 figure;
 subplot(3,1,1);
-imagesc(squeeze(mean(crossTalkTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
+imagesc(squeeze(mean(crossTalkTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
 ylabel('seedArea');xlabel('predictArea')
 title('templateBased')
-subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
+subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
 ylabel('seedArea');xlabel('predictArea')
 title('Whole MinNorm')
-subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;caxis([0 1])
+subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('ROI MinNorm')
 set(gcf,'position',[100,100,800,1800])
-saveas(gcf,['figures' filesep 'ERPcrossTalkSNR1000'],'png')
+saveas(gcf,['figures' filesep 'ERPcrossTalkSNR' num2str(SNRlevel)],'png')
 
 
 % figure;
