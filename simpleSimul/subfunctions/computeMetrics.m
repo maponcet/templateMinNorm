@@ -6,8 +6,9 @@ function [auc, energy,mseNorm] = computeMetrics(beta,sourceOverTime)
 
 %%%%% AUC
 aucTime = zeros(1,size(beta,2));
+srcOn = sourceOverTime~=0;
 for nT = 1:size(beta,2)
-    aucTime(nT) = rocArea( abs(beta(:,nT)) , sourceOverTime(:,nT) );
+    aucTime(nT) = rocArea( abs(beta(:,nT)) , srcOn(:,nT) );
 end
 auc = mean(aucTime);
 

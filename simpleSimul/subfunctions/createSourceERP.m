@@ -21,10 +21,13 @@ for k = 1 : length(sourceROI)
         rand * cos( 12 * x - rand * pi );
     % create ERP waveform
 %     yERPgauss = y.*gaussmf(x,[pi/4 pi]); % std=pi/4, mean=pi
-    % use a half cosine
-    cosFilt = cos(-pi:pi/(45/1.5):pi-pi/(45/1.5));
-    cosFilt(cosFilt<0) = 0;
-    yERP = y.* cosFilt(9:end-7);
+%     % use a half cosine
+%     cosFilt = cos(-pi:pi/45:pi-pi/45);
+%     cosFilt(cosFilt<0) = 0;
+    cosFilt = cos(-pi:pi/45:pi-pi/45);
+    % keep only positive nb
+    filt = cosFilt(find(cosFilt>0));
+    yERP = y.* filt;
     % multiply waveform by the source amplitude (ROIxtime)
     sourceERP( sourceROI(k) , : )  = yERP * sourceAmplitude;
     if ~isempty(sameSource)
