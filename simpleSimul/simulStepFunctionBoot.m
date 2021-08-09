@@ -334,22 +334,22 @@ retrieveROIin = mean(betaROIin,3);
 
 % %% Plots for 1st bootstrap
 % if repBoot==1
-%     %%% plot BETAs
-%     count = 1;
-%     figure;set(gcf,'position',[100,100,800,1000])
-%     for iRoi = 1:2:numROIs
-%         % need to normalise the signal
-%         subplot(3,3,count);hold on
-%         plot(srcERP(iRoi,:) / max(max(abs(srcERP))) ,'LineWidth',2)
-%         plot(betaAverage(iRoi,:) / max(max(abs(betaAverage))) ,'LineWidth',2)
-%         plot(retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2)
-%         plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2)
-%         legend('Source','template','whole','roi','location','best')
-%         title(listROIs(iRoi))
-%         count=count+1;
-%         ylim([-1 1]);xlabel('time'); ylabel('normBeta')
-%     end
-%     saveas(gcf,['figures/betaStepSNR' num2str(SNRlevel(level))],'png')
+    %%% plot BETAs
+    count = 1;
+    figure;set(gcf,'position',[100,100,800,1000])
+    for iRoi = 1:2:numROIs
+        % need to normalise the signal
+        subplot(3,3,count);hold on
+        plot(srcERP(iRoi,:) / max(max(abs(srcERP))) ,'LineWidth',2)
+        plot(betaAverage(iRoi,:) / max(max(abs(betaAverage))) ,'LineWidth',2)
+        plot(retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2)
+        plot(retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2)
+        legend('Source','template','whole','roi','location','best')
+        title(listROIs(iRoi))
+        count=count+1;
+        ylim([-1 1]);xlabel('time'); ylabel('normBeta')
+    end
+    saveas(gcf,['figures/betaStepSNR' num2str(SNRlevel(level))],'png')
 %     %%% plot topo
 %     % compare with average roiFwd for the participants then plot the average
 %     % betas on this average roiFwd
@@ -397,10 +397,10 @@ retrieveROIin = mean(betaROIin,3);
 %     
 %     saveas(gcf,['figures/topoStepN' num2str(SNRlevel(level))],'png')
 %     % order: 3 rows = V1, MT, V1+MT
-%     % columns = source Y, average topo from each simul ind, template results,
+%     % columns = source Y, template results, normalised template,
 %     % whole results from average betas, whole from average voltage (betas put
 %     % into topo first for each sbj then average topo), roi results from betas,
-%     % roi results from average voltages, normalised template
+%     % roi results from average voltages, oracle topo
 % end
 
 %%

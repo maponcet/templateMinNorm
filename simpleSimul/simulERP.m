@@ -323,6 +323,17 @@ if repBoot==1 && numSubs >10
         ylim([-1 1]);count=count+1;
     end
     saveas(gcf,['figures/betaErpRoiN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
+    count = 1;
+    figure;set(gcf,'position',[100,100,800,1000])
+    for iRoi = 1:2:numROIs
+        % need to normalise the signal
+        subplot(3,3,count);hold on
+        plot(retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2);
+        plot(retrieveWhole(iRoi+1,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2);
+        tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+        ylim([-1 1]);count=count+1;
+    end
+    saveas(gcf,['figures/betaErpWholeN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
     
 %     %%% plot topo
 %     % compare with average roiFwd for the participants then plot the average
@@ -488,6 +499,25 @@ legend('N2','N8','N20','N50')
 saveas(gcf,['figures' filesep 'SNRtestNROIERP'],'png')
 
 
+figure;
+for ss=1:length(nbSbjToInclude)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucROIin(:,ss,:))),squeeze(std(aucROIin(:,ss,:))),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('ROIin')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyROIin(:,ss,:))),squeeze(std(energyROIin(:,ss,:))),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseROINormin(:,ss,:))),squeeze(std(mseROINormin(:,ss,:))),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('N2','N8','N20','N50')
+saveas(gcf,['figures' filesep 'SNRtestNROIinERP'],'png')
 
 % lineCOL={':r',':b',':g','--r','--b','--g','-r','-b','-g'};
 % figure;

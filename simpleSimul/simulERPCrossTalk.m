@@ -1,7 +1,6 @@
 clearvars;close all;
 % simulate one area and compute amount of leakage (crosstalk) with other
 % areas
-% NO noise
 
 addpath([pwd filesep 'subfunctions' filesep]);
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
@@ -145,9 +144,10 @@ for seedRoi = 1:numROIs
         normTermWhole = rms(retrieveWhole(seedRoi,:));
         normTermROI = rms(retrieveROI(seedRoi,:));
         for iRoi = 1:numROIs
-            crossTalkTemplate(repBoot,seedRoi,iRoi) = rms(betaAverage(iRoi,:)) / normTerm;
-            crossTalkWhole(repBoot,seedRoi,iRoi) = rms(retrieveWhole(iRoi,:)) / normTermWhole;
-            crossTalkROI(repBoot,seedRoi,iRoi) = rms(retrieveROI(iRoi,:)) / normTermROI;
+%             crossTalkTemplate(repBoot,seedRoi,iRoi) = rms(betaAverage(iRoi,:)) / normTerm;
+%             crossTalkWhole(repBoot,seedRoi,iRoi) = rms(retrieveWhole(iRoi,:)) / normTermWhole;
+%             crossTalkROI(repBoot,seedRoi,iRoi) = rms(retrieveROI(iRoi,:)) / normTermROI;
+            test(seedRoi,iRoi) = rms(betaAverage(iRoi,:)) / normTerm;
         end
             
 %         count = 1;
@@ -193,8 +193,8 @@ set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))
 ylabel('seedArea');xlabel('predictArea')
 title('templateBased')
 subplot(3,1,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-set(gca, 'XTick',1:18, 'XTickLabel',listROIs)   
-set(gca, 'YTick',1:18, 'YTickLabel',listROIs)   
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('Whole MinNorm')
 subplot(3,1,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
@@ -202,7 +202,7 @@ set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('ROI MinNorm')
-set(gcf,'position',[100,100,800,1800])
+set(gcf,'position',[100,100,800,2000])
 saveas(gcf,['figures' filesep 'ERPcrossTalkSNR' num2str(SNRlevel)],'png')
 
 
