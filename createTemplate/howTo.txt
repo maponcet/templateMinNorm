@@ -1,0 +1,11 @@
+HOW TO create a template
+
+1. run alignToMrcElec(EEGsystem) - e.g. alignToMrcElec('EGI128') 
+this function calls readElecLocs.m which needs to include the info abt
+the electrode locations for that system. 
+
+2. run makeFwd(EEGsystem) to create the fwd models based on the new
+electrode layout
+
+3. makeTemplate(EEGsystem) to load and sum the ROI across participants.
+The topographies are only plotted for standard layouts (from FieldTrip)

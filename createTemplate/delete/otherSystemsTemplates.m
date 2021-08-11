@@ -1,9 +1,8 @@
 
-
 %%% ATTENTION: should plot topo according to the system layout!!!
 clearvars
 addpath /Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork
-
+addpath /Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated
 
 listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardBiosemi128/*.mat');
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
@@ -88,12 +87,11 @@ save('averageMapBiosemi64.mat','avMap','listROIs')
 
 
 
-listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/test/*.mat');
+listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardBiosemi32/*.mat');
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
 roiMap=[];aa=0;
-roiMapMean=[];roiMapSum=[];
 for ff=1:length(listFiles)
     clear fwdMatrix roiInfo
     load([listFiles(ff).folder filesep listFiles(ff).name])
@@ -106,9 +104,23 @@ for ff=1:length(listFiles)
         for rr=1:length(listROIs)
             clear indexROI
             indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
-            roiMapMean(:,rr,aa) = mean(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
-            roiMapSum(:,rr,aa) = sum(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
+            roiMap(:,rr,aa) = mean(fwdMatrix(:,roiInfo(indexROI).meshIndices),2);
         end
     end
 end
-figure;plotTopo(roiMap(1,1),'biosemi64.lay')
+
+avMap = mean(roiMap,3);
+max(max(abs(avMap)))
+mm=150;
+figure('position', [200, 0, 1500, 800])
+colormap jet
+for roi=1:18
+    subplot(3,6,roi)
+    title(listROIs(roi))
+    plotTopo(avMap(:,roi),'biosemi32.lay')
+    caxis([-mm mm])
+%     colorbar
+end
+saveas(gcf,'figures/averageMapBiosemi32','png')
+save('averageMapBiosemi32.mat','avMap','listROIs')
+
