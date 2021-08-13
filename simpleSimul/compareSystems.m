@@ -201,49 +201,10 @@ for repBoot=1:totBoot
     
 end
 
+save('compSys.mat','aucAve','energyAve','mseAveNorm','aucROI',...
+    'energyROI','mseROINorm','aucWhole','energyWhole','mseWholeNorm')
 
-%%% plot metrics
-figure; set(gcf,'position',[100,100,800,300])
-subplot(1,3,1);hold on;
-bar(mean(aucAve));ylim([0 1]);ylabel('AUC')
-errorbar(1:size(aucAve,2),mean(aucAve),std(aucAve),'LineStyle','none')
-set(gca,'xticklabel',{'','EGI','Bio128','Bio64','Bio32'})
-subplot(1,3,2);hold on;bar(mean(energyAve));ylim([0 1]);ylabel('energy')
-errorbar(1:size(energyAve,2),mean(energyAve),std(energyAve),'LineStyle','none')
-set(gca,'xticklabel',{'','EGI','Bio128','Bio64','Bio32'})
-subplot(1,3,3);hold on;bar(mean(mseAveNorm));ylim([0 1]);ylabel('MSE')
-set(gca,'xticklabel',{'','EGI','Bio128','Bio64','Bio32'})
-errorbar(1:size(mseAveNorm,2),mean(mseAveNorm),std(mseAveNorm),'LineStyle','none')
-saveas(gcf,['figures/compareSysMetrics'],'png')
-
-
-figure;
-for ss=1:sysNb
-    subplot(1,3,1);hold on;
-    plot(squeeze(aucAve(1,ss,:)))
-    ylim([0 1])
-    subplot(1,3,2);hold on;
-    plot(squeeze(energyAve(1,ss,:)))
-    ylim([0 1])
-    subplot(1,3,3);hold on;
-    plot(squeeze(mseAveNorm(1,ss,:)))
-    ylim([0 1])
-end
-figure;
-for ss=1:sysNb
-    subplot(1,3,1);hold on;
-    plot(squeeze(aucWhole(1,ss,:)))
-    ylim([0 1])
-    subplot(1,3,2);hold on;
-    plot(squeeze(energyWhole(1,ss,:)))
-    ylim([0 1])
-    subplot(1,3,3);hold on;
-    plot(squeeze(mseWholeNorm(1,ss,:)))
-    ylim([0 1])
-end
-
-
-figure;
+figure;hold on
 for ss=1:sysNb
     subplot(1,3,1);hold on;
     errorbar(log(SNRlevel),squeeze(mean(aucAve(:,ss,:))),squeeze(std(aucAve(:,ss,:),1)),'LineWidth',2)
@@ -260,3 +221,50 @@ for ss=1:sysNb
     ylabel('MSE')
     ylim([0 1])
 end
+legend('32','64','124','256','location','best')
+set(gcf,'position', [50, 100, 800, 400])
+saveas(gcf,['figures/compSysTemplate'],'png')
+
+figure;hold on
+for ss=1:sysNb
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucROI(:,ss,:))),squeeze(std(aucROI(:,ss,:),1)),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('ROI')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyROI(:,ss,:))),squeeze(std(energyROI(:,ss,:),1)),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseROINorm(:,ss,:))),squeeze(std(mseROINorm(:,ss,:),1)),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('32','64','124','256','location','best')
+set(gcf,'position', [50, 100, 800, 400])
+saveas(gcf,['figures/compSysROI'],'png')
+
+figure;hold on
+for ss=1:sysNb
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucWhole(:,ss,:))),squeeze(std(aucWhole(:,ss,:),1)),'LineWidth',2)
+    xlabel('log(SNR)')
+    ylim([0 1])
+    ylabel('AUC')
+    title('whole')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyWhole(:,ss,:))),squeeze(std(energyWhole(:,ss,:),1)),'LineWidth',2)
+    ylim([0 1])
+    ylabel('Energy')
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseWholeNorm(:,ss,:))),squeeze(std(mseWholeNorm(:,ss,:),1)),'LineWidth',2)
+    ylabel('MSE')
+    ylim([0 1])
+end
+legend('32','64','124','256','location','best')
+set(gcf,'position', [50, 100, 800, 400])
+saveas(gcf,['figures/compSysWhole'],'png')
+
+
