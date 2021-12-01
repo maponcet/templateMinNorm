@@ -2,9 +2,9 @@
 addpath([pwd filesep 'subfunctions' filesep]);
 
 
-for rep = 1:100
+for rep = 1:1000
     
-SNRlevel = 20; % 0.1 means 10 times more noise than signal
+SNRlevel = 10; % 0.1 means 10 times more noise than signal, 10 means 10 times more signal than noise
 signal = repmat([zeros(1,10) randsample(-21:2:21,10,1)],6,1).*rand(6,20); % electrodes x time points
 timeWin = 11:20;
 baseWin = 1:10;
@@ -12,28 +12,29 @@ baseWin = 1:10;
 simul = signal+noise;
 
 % figure;imagesc(signal);colorbar;
-% figure;imagesc(noisy_data);colorbar;
+% figure;imagesc(noise);colorbar;
 % figure;imagesc(simul);colorbar;
 
-% aa(rep) = (rms(simul)/rms(noise))^2 - 1;
-% bb(rep)=(rms(simul(:,timeWin))/rms(simul(:,baseWin)))^2 -1;
-% cc(rep)=(sum(sum(signal.^2+noise.^2)))/sum(sum(noise.^2)) - 1;
+erpWin = simul(:,timeWin); preWin = simul(:,baseWin);
+noiseERP = noise(:,timeWin);
 
-for elec=1:6
-m1(elec,rep) = (rms(simul(elec,:))/rms(noise(elec,:)))^2 - 1;
-m2(elec,rep) = (rms(simul(elec,timeWin))/rms(simul(elec,baseWin)))^2 -1;
-m3(elec,rep) = (sum(sum(signal(elec,:).^2+noise(elec,:).^2)))/sum(sum(noise(elec,:).^2)) - 1;
-m4(elec,rep) = (rms(simul(elec,timeWin))/rms(noise(elec,timeWin)))^2 - 1;
-m5(elec,rep) = (rms(signal(elec,:))/rms(noise(elec,:)))^2;
-end
+aa(rep) = (rms(simul(:))/rms(noise(:)))^2 - 1;
+bb(rep)= (rms(erpWin(:))/rms(preWin(:)))^2 -1;
+cc(rep)= (sum(sum(signal(:).^2+noise(:).^2)))/sum(sum(noise(:).^2)) - 1;
 
 end
 
-mean(mean(m1,2))
-mean(mean(m2,2))
-mean(mean(m3,2))
-mean(mean(m4,2))
-mean(mean(m5,2))
+mean(aa)
+mean(bb)
+mean(cc)
 
-% SNR half than expected if I feed signal time window and calculate the
-% output SNR on the full window.
+% in add_ERPnoise_with_SNR, when "+ rand * variance_m" is there,  bb = SNR
+% but aa & cc are half. without the randomisation part, aa = SNR and bb is
+% twice SNR. 
+
+% half of the entire window does not have signal so when using simul, the
+% SNR is half. Should only use window where there is actually a signal
+
+% noise_var(k) = 1/SNR_lin * (0.5 * variance_m + rand * variance_m)
+% adds equivalent to 1*variance of the signal scales by the SNR 
+% since 0.5*rand = 1 on average. 
