@@ -13,13 +13,13 @@ mm(4).dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI256/';
 mm(4).dirList = dir([mm(4).dataPath 'forward*']);
 nbModels = length(mm);
 
-load('averageMapEGI32.mat'); % load average map of ROIs (128 elec x 18 ROIs)
+load('averageMapEGI32.mat'); 
 mm(1).avMap = avMap;
-load('averageMapEGI64.mat'); % load average map of ROIs (128 elec x 18 ROIs)
+load('averageMapEGI64.mat'); 
 mm(2).avMap = avMap;
 load('averageMapEGI128.mat'); % load average map of ROIs (128 elec x 18 ROIs)
 mm(3).avMap = avMap;
-load('averageMapEGI256.mat'); % load average map of ROIs (128 elec x 18 ROIs)
+load('averageMapEGI256.mat'); 
 mm(4).avMap = avMap;
 
 numROIs = length(listROIs);
@@ -221,7 +221,7 @@ for ss=1:sysNb
     ylabel('MSE')
     ylim([0 1])
 end
-legend('32','64','124','256','location','best')
+legend('32','64','128','256','location','best')
 set(gcf,'position', [50, 100, 800, 400])
 saveas(gcf,['figures/compSysTemplate'],'png')
 
@@ -242,7 +242,7 @@ for ss=1:sysNb
     ylabel('MSE')
     ylim([0 1])
 end
-legend('32','64','124','256','location','best')
+legend('32','64','128','256','location','best')
 set(gcf,'position', [50, 100, 800, 400])
 saveas(gcf,['figures/compSysROI'],'png')
 
@@ -263,7 +263,7 @@ for ss=1:sysNb
     ylabel('MSE')
     ylim([0 1])
 end
-legend('32','64','124','256','location','best')
+legend('32','64','128','256','location','best')
 set(gcf,'position', [50, 100, 800, 400])
 saveas(gcf,['figures/compSysWhole'],'png')
 

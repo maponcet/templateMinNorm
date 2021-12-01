@@ -13,8 +13,8 @@ numROIs = length(listROIs);
 SNRlevel = [0.1 1 10 200 10000]; % 0.1 means 10 times more noise than signal, 10 means 10 times more signal than noise
 nLambdaRidge = 10; % for calculating minimum_norm, reg constant, hyper param in min norm
 % set 2 vectors of the left and right sources in the same order
-sourceL = {'V1-L','MT-L'};
-sourceR = {'V1-R','MT-R'};
+sourceL = {'V2V-L','V4-L'};
+sourceR = {'V2V-R','V4-R'};
 % simulated signal
 activeROIs = [sourceL,sourceR]; % left sources then right sources to make it easier for copying the same signal over the 2 hemispheres
 % find the ROI index corresponding to the activeROIs
@@ -288,7 +288,7 @@ retrieveROIin = mean(betaROIin,3);
     mseROINormin(repBoot,totSbj,level)] = computeMetrics(retrieveROIin(:,winERP),srcERP(:,winERP));
 
 %% Plots for 1st bootstrap
-if repBoot==1 && numSubs >10
+if repBoot==1 && numSubs ==50
     %%% plot BETAs
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
@@ -300,7 +300,7 @@ if repBoot==1 && numSubs >10
         tt = cell2mat(listROIs(iRoi));title(tt(1:end-2) ,'LineWidth',2)
         ylim([-1 1]);count=count+1;
     end
-    saveas(gcf,['figures/betaErpSrcN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
+    saveas(gcf,['figures/V2V4SrcN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
     for iRoi = 1:2:numROIs
@@ -311,7 +311,7 @@ if repBoot==1 && numSubs >10
         tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
         ylim([-1 1]);count=count+1;
     end
-    saveas(gcf,['figures/betaErpTempN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
+    saveas(gcf,['figures/V2V4TempN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
     for iRoi = 1:2:numROIs
@@ -322,7 +322,7 @@ if repBoot==1 && numSubs >10
         tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
         ylim([-1 1]);count=count+1;
     end
-    saveas(gcf,['figures/betaErpRoiN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
+    saveas(gcf,['figures/V2V4RoiN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
     for iRoi = 1:2:numROIs
@@ -333,7 +333,7 @@ if repBoot==1 && numSubs >10
         tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
         ylim([-1 1]);count=count+1;
     end
-    saveas(gcf,['figures/betaErpWholeN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
+    saveas(gcf,['figures/V2V4WholeN' num2str(numSubs) 'SNR' num2str(SNRlevel(level)) ],'png')
     
 %     %%% plot topo
 %     % compare with average roiFwd for the participants then plot the average
@@ -456,7 +456,7 @@ for ss=1:length(nbSbjToInclude)
     ylim([0 1])
 end
 legend('N2','N8','N20','N50')
-saveas(gcf,['figures' filesep 'SNRtestNtemplateERP'],'png')
+saveas(gcf,['figures' filesep 'V2V4templateERP'],'png')
 
 figure;
 for ss=1:length(nbSbjToInclude)
@@ -476,7 +476,7 @@ for ss=1:length(nbSbjToInclude)
     ylim([0 1])
 end
 legend('N2','N8','N20','N50')
-saveas(gcf,['figures' filesep 'SNRtestNWholeERP'],'png')
+saveas(gcf,['figures' filesep 'V2V4WholeERP'],'png')
 
 figure;
 for ss=1:length(nbSbjToInclude)
@@ -496,7 +496,7 @@ for ss=1:length(nbSbjToInclude)
     ylim([0 1])
 end
 legend('N2','N8','N20','N50')
-saveas(gcf,['figures' filesep 'SNRtestNROIERP'],'png')
+saveas(gcf,['figures' filesep 'V2V4NROIERP'],'png')
 
 
 figure;
@@ -517,7 +517,7 @@ for ss=1:length(nbSbjToInclude)
     ylim([0 1])
 end
 legend('N2','N8','N20','N50')
-saveas(gcf,['figures' filesep 'SNRtestNROIinERP'],'png')
+saveas(gcf,['figures' filesep 'V2V4ROIinERP'],'png')
 
 % lineCOL={':r',':b',':g','--r','--b','--g','-r','-b','-g'};
 % figure;
