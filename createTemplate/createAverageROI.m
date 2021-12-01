@@ -188,3 +188,20 @@ for rr=1:length(pickROI)
 end
 
 
+% plot variability in amplitude
+for rr=1:size(roiMapSum,2)
+    for ss=1:size(roiMapSum,3)
+        minAmp(rr,ss) = min(roiMapSum(:,rr,ss));  
+        maxAmp(rr,ss) = max(roiMapSum(:,rr,ss));
+    end
+end
+figure;
+for rr=1:size(roiMapSum,2)
+subplot(3,6,rr)
+plot(minAmp(rr,:)); hold on; plot(maxAmp(rr,:))
+title(listROIs(rr))
+line(1:50,repmat(mean(minAmp(rr,:))- 3*std(minAmp(rr,:)),1,50),'Color','b')
+line(1:50,repmat(mean(minAmp(rr,:))+ 3*std(minAmp(rr,:)),1,50),'Color','b')
+line(1:50,repmat(mean(maxAmp(rr,:))- 3*std(maxAmp(rr,:)),1,50),'Color','r')
+line(1:50,repmat(mean(maxAmp(rr,:))+ 3*std(maxAmp(rr,:)),1,50),'Color','r')
+end
