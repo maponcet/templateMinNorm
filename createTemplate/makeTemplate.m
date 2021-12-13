@@ -6,6 +6,7 @@ function makeTemplate(projectName)
 
 addpath /Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork
 addpath /Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated
+addpath /Users/marleneponcet/Documents/Git/svndl_code/alesToolbox
 
 listFiles = dir(['/Users/marleneponcet/Documents/data/skeriDATA/forward' projectName '/*.mat']);
 if isempty(listFiles)
@@ -32,10 +33,21 @@ for ff=1:length(listFiles)
     end
 end
 avMap = mean(roiMap,3);
-save(['averageMap' projectName '.mat'],'avMap','listROIs')
+
+% do a normalisation for each ROI -> unit norming
+% so that the betas represent microVolts (instead of microVolts/area size
+% as it is now)
+% unit norming is: all electrodes are squared and summed. These values are
+% then divided so that the total of the electrodes for each ROI (power) is
+% equal to 1
+regParam = sqrt(sum(avMap.^2,1));
+avMapNorm = bsxfun(@rdivide,avMap,regParam);
+
+save(['templates' filesep 'averageMap' projectName '.mat'],'avMap','avMapNorm','listROIs')
 
 % plot if layout available
 mm = round(max(max(abs(avMap))),-1);
+nn = round(max(max(abs(avMapNorm))),1);
 projectName = lower(projectName);
 if contains(projectName,'biosemi')
     figure('position', [200, 0, 1500, 800])
@@ -48,6 +60,16 @@ if contains(projectName,'biosemi')
         % colorbar
     end
     saveas(gcf,['figures/averageMap' projectName],'png')
+    figure('position', [200, 0, 1500, 800])
+    colormap jet
+    for roi=1:18
+        subplot(3,6,roi)
+        title(listROIs(roi))
+        plotTopo(avMapNorm(:,roi),[projectName '.lay'])
+        caxis([-nn nn])
+        % colorbar
+    end
+    saveas(gcf,['figures/averageMapNorm' projectName],'png')
 elseif strcmp(projectName,'egi256') ||  strcmp(projectName,'egi128') 
     figure('position', [200, 0, 1500, 800])
     for roi=1:18
@@ -57,6 +79,14 @@ elseif strcmp(projectName,'egi256') ||  strcmp(projectName,'egi128')
         caxis([-mm mm])
     end
     saveas(gcf,['figures/averageMap' projectName],'png')
+    figure('position', [200, 0, 1500, 800])
+    for roi=1:18
+        subplot(3,6,roi)
+        title(listROIs(roi))
+        plotOnEgi(avMapNorm(:,roi)) % only for 256 & 128 electrodes
+        caxis([-nn nn])
+    end
+    saveas(gcf,['figures/averageMapNorm' projectName],'png')
 end
 
 
