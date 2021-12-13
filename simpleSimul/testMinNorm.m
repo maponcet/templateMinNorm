@@ -381,8 +381,8 @@ for level=1:length(SNRlevel)
     %% compute minimum norm
 %     [beta_gcvROI, betaGrid_gcvROI, lambda_gcvROI, gcvError_gcvROI,lambdaGrid_gcvROI] = minimum_norm([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), 30);
 %     [betaROI, betaMinNormROI, lambdaROI, lambdaGridROI, lambdaCurveROI] = minNorm_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));
-     clear mse_gcv
-    [beta_gcv, betaGrid_gcv, lambda_gcv, gcvError_gcv,lambdaGrid_gcv] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), 200);
+     clear mse_gcv 
+    [beta_gcv, betaGrid_gcv, lambda_gcv, gcvError_gcv,lambdaGrid_gcv] = minimum_norm(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), 10);
     [beta, betaMinNorm, lambda, lambdaGrid, lambdaCurve] = minNorm_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
     for iLambda = 1:length(lambdaGrid_gcv)
         mse_gcv(iLambda) = sum(sum((betaGrid_gcv{iLambda}-sourceData).^2));

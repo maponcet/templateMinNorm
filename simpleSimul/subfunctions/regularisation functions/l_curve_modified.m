@@ -1,4 +1,4 @@
-function [reg_corner,rho,eta,reg_param,reg_curv] = l_curve_time(U,sm,b,method,L,V)
+function [reg_corner,reg_param] = l_curve_modified(U,sm,b,method,L,V)
 %L_CURVE Plot the L-curve and find its "corner".
 %
 % [reg_corner,rho,eta,reg_param] =
@@ -30,10 +30,12 @@ function [reg_corner,rho,eta,reg_param,reg_curv] = l_curve_time(U,sm,b,method,L,
 % Comput. 14 (1993), pp. 1487-1503.
 
 % Per Christian Hansen, DTU Compute, October 27, 2010.
+% Modified to include time matrix + force min lambda to be 0.5 + use
+% l_corner_modified function
 
 % Set defaults.
 if (nargin==3), method='Tikh'; end  % Tikhonov reg. is default.
-npoints = 200;  % Number of points on the L-curve for Tikh and dsvd.
+npoints = 200; % Number of points on the L-curve for Tikh and dsvd.
 smin_ratio = 16*eps;  % Smallest regularization parameter.
 
 % Initialization.
@@ -142,18 +144,18 @@ end
 
 % Locate the "corner" of the L-curve, if required.
 if (locate)
-  [reg_corner,rho_c,eta_c,reg_curv] = l_corner(rho,eta,reg_param,U,sm,b,method);
+  [reg_corner,rho_c,eta_c] = l_corner_modified(rho,eta,reg_param,U,sm,b,method);
 end
 
-% Make plot.
-figure;
-plot_lc(rho,eta,marker,ps,reg_param);
-if locate
-  ax = axis;
-  HoldState = ishold; hold on;
-  loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
-         [rho_c,rho_c],[min(eta)/100,eta_c],':r')
-  title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
-  axis(ax)
-  if (~HoldState), hold off; end
-end
+% % Make plot.
+% figure;
+% plot_lc(rho,eta,marker,ps,reg_param);
+% if locate
+%   ax = axis;
+%   HoldState = ishold; hold on;
+%   loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
+%          [rho_c,rho_c],[min(eta)/100,eta_c],':r')
+%   title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
+%   axis(ax)
+%   if (~HoldState), hold off; end
+% end

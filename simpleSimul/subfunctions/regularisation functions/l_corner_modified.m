@@ -1,4 +1,4 @@
-function [reg_c,rho_c,eta_c,reg_c_cur] = l_corner(rho,eta,reg_param,U,s,b,method,M)
+function [reg_c,rho_c,eta_c] = l_corner_modified(rho,eta,reg_param,U,s,b,method,M)
 %L_CORNER Locate the "corner" of the L-curve.
 %
 % [reg_c,rho_c,eta_c] =
@@ -27,7 +27,7 @@ function [reg_c,rho_c,eta_c,reg_c_cur] = l_corner(rho,eta,reg_param,U,s,b,method
 % the corner should be found.
 
 % Per Christian Hansen, DTU Compute, January 31, 2015.
-% modified to account for time + use curva
+% modified to account for time + use curvature function instead of lcfun
 
 % Ensure that rho and eta are column vectors.
 rho = rho(:); eta = eta(:);
@@ -83,25 +83,26 @@ if (strncmp(method,'Tikh',4) || strncmp(method,'tikh',4))
   % log-log scale is easy.
 
   % Compute g = - curvature of L-curve.
-  g = lcfun(reg_param,s,beta,xi);
-  % Locate the corner.  If the curvature is negative everywhere,
-  % then define the leftmost point of the L-curve as the corner.
-  [~,gi] = min(g);
-  reg_c = fminbnd('lcfun',...
-     reg_param(min(gi+1,length(g))),reg_param(max(gi-1,1)),...
-    optimset('Display','off'),s,beta,xi); % Minimizer.
+%   g = lcfun(reg_param,s,beta,xi);
+%   % Locate the corner.  If the curvature is negative everywhere,
+%   % then define the leftmost point of the L-curve as the corner.
+%   [~,gi] = min(g);
+%   reg_c = fminbnd('lcfun',...
+%      reg_param(min(gi+1,length(g))),reg_param(max(gi-1,1)),...
+%     optimset('Display','off'),s,beta,xi); % Minimizer.
+%     kappa_max = - lcfun(reg_c,s,beta,xi); % Maximum curvature.
 
 %   [reg_c] = fminunc('lcfun',...
 %       reg_param(gi),optimset('Display','off'),s,beta,xi);
 % reg_param(end), reg_param(1),...
 %   %  reg_param(min(gi+1,length(g))),reg_param(max(gi-1,1)),...
 
-  kappa_max = - lcfun(reg_c,s,beta,xi); % Maximum curvature.
+  
 
   [~,~,k] = curvature([log(rho),log(eta)]);
    [~,gi_cur] = max(k(:,1));
-   reg_c_cur = reg_param(gi_cur);
-   kappa_max_cur = k(gi_cur,1); % Maximum curvature.
+   reg_c = reg_param(gi_cur);
+   kappa_max = k(gi_cur,1); % Maximum curvature.
    
   if (kappa_max < 0)
     lr = length(rho);
@@ -113,13 +114,13 @@ if (strncmp(method,'Tikh',4) || strncmp(method,'tikh',4))
     if (m>n), rho_c = sqrt(rho_c^2 + norm(b0)^2); end
   end
   
-  figure;subplot(3,1,1);
-  loglog(rho,eta,'linewidth',2);ylabel('solution norm || x ||_2')
-  subplot(3,1,2);semilogx(rho,-k(:,1),'linewidth',2);ylabel('g-curvature');
-  title(['Curvature Corner=',num2str(reg_c_cur)]);
-  subplot(3,1,3);semilogx(rho,g,'linewidth',2);ylabel('g-curvature');
-  xlabel('residual norm || A x - b ||_2');
-  title(['Lcfun Corner=',num2str(reg_c)]);
+%   figure;subplot(3,1,1);
+%   loglog(rho,eta,'linewidth',2);ylabel('solution norm || x ||_2')
+%   subplot(3,1,2);semilogx(rho,-k(:,1),'linewidth',2);ylabel('g-curvature');
+%   title(['Curvature Corner=',num2str(reg_c_cur)]);
+%   subplot(3,1,3);semilogx(rho,g,'linewidth',2);ylabel('g-curvature');
+%   xlabel('residual norm || A x - b ||_2');
+%   title(['Lcfun Corner=',num2str(reg_c)]);
   
 elseif (strncmp(method,'tsvd',4) || strncmp(method,'tgsv',4) || ...
         strncmp(method,'mtsv',4) || strncmp(method,'none',4))
