@@ -119,7 +119,7 @@ for repBoot=1:totBoot
             betaROIinLC = regionWhole;
             
             % min_norm on average data: get beta values for each ROI over time
-            [betaAverage, lambda] = minNormFast_lcurve(avMapNorm, squeeze(mean(Y_avg,1)));
+            [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
             
             indFwdROI_noise=[roiFwd{iSub,:}];
             indData_noise=squeeze(Y_avg(iSub,:,:));
@@ -149,16 +149,16 @@ for repBoot=1:totBoot
                 
                 % feed ROI per sbj instead of mesh = "oracle" (best possible recovery)
                 sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
-                [betaROIin, lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaROIinLC, lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
+                [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
+                [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
             end
             % average across subj
             retrieveWhole = squeeze(mean(regionWhole,1));
             retrieveROI = squeeze(mean(regionROI,1));
-            retrieveROIin = mean(betaROIin,3);
+            retrieveROIin = squeeze(mean(betaROIin,1));
             retrieveWholeLC = squeeze(mean(regionWholeLC,1));
             retrieveROILC = squeeze(mean(regionROILC,1));
-            retrieveROIinLC = mean(betaROIinLC,3);
+            retrieveROIinLC = squeeze(mean(betaROIinLC,1));
             
             % save simulation
             simulERP(repBoot,totSbj,level).listROIs = listROIs;

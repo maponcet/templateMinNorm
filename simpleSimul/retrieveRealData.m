@@ -59,6 +59,10 @@ end
 
 regionWhole = zeros(numSubs,numROIs,length(Y_avg));
 regionROI = zeros(numSubs,numROIs,length(Y_avg));
+regionROILC = regionWhole;
+regionWholeLC= regionWhole;
+betaROIin= regionWhole;
+betaROIinLC= regionWhole;
 
 for iSub=1:numSubs
     % regular minimum_norm: on the 20484 indexes per sbj
@@ -83,14 +87,14 @@ for iSub=1:numSubs
     
     % feed ROI per sbj instead of mesh
     sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
-    [betaROIin, lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-    [betaROIinLC, lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
+    [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
+    [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
 end
 % average across subj
 retrieveWhole = squeeze(mean(regionWhole,1));
 retrieveROI = squeeze(mean(regionROI,1));
-retrieveROIin = mean(betaROIin,3);
-retrieveROIinLC = mean(betaROIinLC,3);
+retrieveROIin = squeeze(mean(betaROIin,3));
+retrieveROIinLC = squeeze(mean(betaROIinLC,3));
 retrieveWholeLC = squeeze(mean(regionWholeLC,1));
 retrieveROILC = squeeze(mean(regionROILC,1));        
 
