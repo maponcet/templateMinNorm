@@ -1,7 +1,8 @@
 clearvars;close all;
 % manipulate the number of sources (picked randomly) per simulation
 % ALWAYS bilateral sources (if V1 is active, both left & right are)
-% only 2 windows: baseline and sources
+% only 2 windows: baseline and sources (ie the ERP is the sum of the
+% sources)
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
@@ -96,10 +97,12 @@ for totROI=1:numROIs/2
         
         %% compute minimum norm
         % min_norm on average data: get beta values for each ROI over time
-        [betaAverage, lambda] = minNormFast_lcurve(avMapNorm, squeeze(mean(Y_avg,1)));
+        [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
         
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));
+        betaROIin = regionWhole;
+        betaROIinLC = regionWhole;
         
         for iSub=1:numSubs
             % regular minimum_norm: on the 20484 indexes per sbj

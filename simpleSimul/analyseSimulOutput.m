@@ -1,9 +1,10 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % compute auc, mse, relative energy & plot them
 % plot the betas
 clearvars;close all;
 
 % load simulation results
-load('simulV1MToutput.mat')
+load('simulOutput/simulV1MToutput.mat')
 
 winERP = simulERP(1,1,1).winERP;
 SNRlevel = unique([simulERP.noise]);
@@ -12,9 +13,7 @@ nbModel = 7;
 aucAve = zeros(size(simulERP,1),size(simulERP,2),size(simulERP,3),nbModel);
 energyAve = aucAve;
 mseAveNorm = aucAve;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% compute auc, mse, relative energy using average signal in rois
-% change betaAverage to other model output as required
+
 for model=1:nbModel
 for repBoot=1:size(simulERP,1)
     for totSbj=1:size(simulERP,2)
@@ -28,30 +27,32 @@ end
 
 %%% plot metrics
 modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC'};
+
+figure;hold on
 for model=1:nbModel
-figure;
 for ss=1:size(simulERP,2)
-    subplot(1,3,1);hold on;
+    subplot(3,nbModel,model);hold on;
     errorbar(log(SNRlevel),squeeze(mean(aucAve(:,ss,:,model))),squeeze(std(aucAve(:,ss,:,model),1)),'LineWidth',2)
     xlabel('log(SNR)');ylim([0 1]);ylabel('AUC')
     title(modName(model))
-    subplot(1,3,2);hold on;
+    subplot(3,nbModel,model+nbModel);hold on;
     errorbar(log(SNRlevel),squeeze(mean(energyAve(:,ss,:,model))),squeeze(std(energyAve(:,ss,:,model),1)),'LineWidth',2)
     ylim([0 1]);ylabel('Energy');
-    subplot(1,3,3);hold on;
+    subplot(3,nbModel,model+nbModel*2);hold on;
     errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:,model))),squeeze(std(mseAveNorm(:,ss,:,model),1)),'LineWidth',2)
     ylabel('MSE');ylim([0 1])
 end
-legend('N=2','N=8','N=20','N=50')
-saveas(gcf,['figures' filesep 'metrics' modName{model}],'png')
 end
+legend('N=2','N=8','N=20','N=50')
+set(gcf,'position',[100 100 1500 700])
+saveas(gcf,['figures' filesep 'metrics' modName{model}],'png')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% plot BETAs for sbj=50, noise=10, bootstrap=1
 noise=3;sbj=size(simulERP,2);repBoot=1;
 listROIs = simulERP(1,1,1).listROIs;
 
-for model=1:4
+for model=1:nbModel
     currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(model,:,:));
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
@@ -84,7 +85,7 @@ saveas(gcf,'figures/betaErpSource','png')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clearvars;close all;
-load('simulRandBilat.mat')
+load('simulOutput/simulRandBilat.mat')
 % 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
 winERP = simulBilat(1,1).winERP;
 nbModel = 5;
@@ -117,3 +118,50 @@ legend('average','whole','ROI','OracleGCV','OracleLcurve');
 saveas(gcf,['figures' filesep 'nbOfBilatROIs'],'png')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+clearvars;close all;
+load('simulOutput/simulRandUni.mat')
+% 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
+winERP = simulUni(1,1).winERP;
+nbModel = 4;
+% initialise variables
+aucAve = zeros(size(simulUni,1),nbModel+nbModel,size(simulUni,2));
+energyAve = aucAve;
+mseAveNorm = aucAve;
+for model=1:nbModel
+    for repBoot=1:size(simulUni,1)
+    for totROI=1:size(simulUni,2)
+        [aucAve(repBoot,model,totROI), energyAve(repBoot,model,totROI),mseAveNorm(repBoot,model,totROI)] = ...
+            computeMetrics(squeeze(simulUni(repBoot,totROI).beta(model,:,winERP)),simulUni(repBoot,totROI).srcERP(:,winERP));        
+        [aucAve(repBoot,model+nbModel,totROI), energyAve(repBoot,model+nbModel,totROI),mseAveNorm(repBoot,model+nbModel,totROI)] = ...
+            computeMetrics(squeeze(simulUni(repBoot,totROI).betaUni(model,:,winERP)),simulUni(repBoot,totROI).srcERPUni(:,winERP));  
+    end
+    end
+end
+%%% plot metrics
+figure('position',[100 100 600 600]);
+for mm=1:nbModel
+    subplot(2,3,1);hold on;
+    errorbar(1:9,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2)
+    xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([1 9]);
+    title('18 potential ROI sources')
+    subplot(2,3,2);hold on;
+    errorbar(1:9,squeeze(mean(energyAve(:,mm,:))),squeeze(std(energyAve(:,mm,:),1)),'LineWidth',2)
+    ylim([0 1]);ylabel('Energy');xlim([1 9]);
+    subplot(2,3,3);hold on;
+    errorbar(1:9,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2)
+    ylabel('MSE');ylim([0 1]);xlim([1 9]);
+end
+for mm=nbModel+1:nbModel*2
+    subplot(2,3,4);hold on;
+    errorbar(1:9,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2)
+    xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([1 9]);
+    title('9 potential ROI sources')
+    subplot(2,3,5);hold on;
+    errorbar(1:9,squeeze(mean(energyAve(:,mm,:))),squeeze(std(energyAve(:,mm,:),1)),'LineWidth',2)
+    ylim([0 1]);ylabel('Energy');xlim([1 9]);
+    subplot(2,3,6);hold on;
+    errorbar(1:9,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2)
+    ylabel('MSE');ylim([0 1]);xlim([1 9]);
+end
+legend('average','whole','ROI','Oracle');
+saveas(gcf,['figures' filesep 'nbOfUniROIs'],'png')

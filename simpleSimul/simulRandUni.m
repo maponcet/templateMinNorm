@@ -145,10 +145,10 @@ for totROI=1:numROIs/2
         % average across subj
         retrieveWhole = squeeze(mean(regionWhole,1));
         retrieveROI = squeeze(mean(regionROI,1));
-        retrieveROIin = mean(betaROIin,3);
+        retrieveROIin = squeeze(mean(betaROIin,1));
         retrieveWholeUni = squeeze(mean(regionWholeUni,1));
         retrieveROIUni = squeeze(mean(regionROIUni,1));
-        retrieveROIinUni = mean(betaROIinUni,3);
+        retrieveROIinUni = squeeze(mean(betaROIinUni,1));
         
         % save simulation
         simulUni(repBoot,totROI).listROIs = listROIs;

@@ -180,4 +180,4 @@ for repBoot=1:totBoot
     end % sbj
 end % boot
 
-save('simulV1MToutput.mat','simulERP')
+save('simulOutput/simulV1MToutput.mat','simulERP')

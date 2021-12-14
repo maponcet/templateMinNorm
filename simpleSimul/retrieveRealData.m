@@ -55,7 +55,7 @@ end
 
 %% compute minimum norm
 % min_norm on average data: get beta values for each ROI over time
-[betaAverage, lambda] = minNormFast_lcurve(avMapNorm, squeeze(mean(Y_avg,1)));
+[betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
 
 regionWhole = zeros(numSubs,numROIs,length(Y_avg));
 regionROI = zeros(numSubs,numROIs,length(Y_avg));
