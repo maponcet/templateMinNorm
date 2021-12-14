@@ -5,8 +5,8 @@ addpath(genpath([pwd filesep 'subfunctions']))
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 nLambdaRidge = 20;
-lowPassNF1 = 0; % filter or not
-numFq2keep = 0; % nb of harmonics to keep in the signal
+lowPassNF1 = 1; % filter or not
+numFq2keep = 10; % nb of harmonics to keep in the signal
 
 %% load forward & EEG data
 sbjList = dir('realData/eegdata/skeri*');
@@ -50,8 +50,13 @@ for iSub=1:numSubs
     Y_avg(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
 end
 
-
-
+%%%%%% "ICA"
+% stackY = reshape(permute(Y,[2 1 3]),[iSub*size(Y,2),size(Y,3)]);
+% [u1, s1, v1] = svd(stackY);
+% numComponents = 3;
+% Ylo = u1(:,1:numComponents)*s1(1:numComponents,1:numComponents)*v1(:, 1:numComponents)';
+% Y2 = reshape(Ylo,[size(Y,2),iSub,size(Y,3)]);
+% Y_avg = permute(Y2,[2 1 3]);
 
 %% compute minimum norm
 % min_norm on average data: get beta values for each ROI over time
