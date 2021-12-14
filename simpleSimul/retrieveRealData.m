@@ -5,8 +5,8 @@ addpath(genpath([pwd filesep 'subfunctions']))
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 nLambdaRidge = 20;
-lowPassNF1 = 1; % filter or not
-numFq2keep = 10; % nb of harmonics to keep in the signal
+lowPassNF1 = 0; % filter or not
+numFq2keep = 0; % nb of harmonics to keep in the signal
 
 %% load forward & EEG data
 sbjList = dir('realData/eegdata/skeri*');
@@ -93,8 +93,8 @@ end
 % average across subj
 retrieveWhole = squeeze(mean(regionWhole,1));
 retrieveROI = squeeze(mean(regionROI,1));
-retrieveROIin = squeeze(mean(betaROIin,3));
-retrieveROIinLC = squeeze(mean(betaROIinLC,3));
+retrieveROIin = squeeze(mean(betaROIin,1));
+retrieveROIinLC = squeeze(mean(betaROIinLC,1));
 retrieveWholeLC = squeeze(mean(regionWholeLC,1));
 retrieveROILC = squeeze(mean(regionROILC,1));        
 
