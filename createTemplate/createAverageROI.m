@@ -2,7 +2,7 @@
 % in the PlosOne paper + the 50 total sbj (average ROI locations)
 
 % addpath('/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/requiredFunctions/');
-% addpath(genpath('/Volumes/Amrutam/Marlene/Git/svndl_code/'));
+addpath(genpath('/Users/marleneponcet/Documents/Git/svndl_code/'));
 % setpref('mrLASSO','scalpFileDir','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/anatomy');
 
 
@@ -104,7 +104,7 @@ figure('position', [200, 0, 1500, 800])
 for roi=1:18
     subplot(3,6,roi)
     title(listROIs(roi))
-    plotOnEgi(avMap.sum(:,roi))
+    plotOnEgi(avMap(:,roi))
     caxis([-8900 8900])
 %     colorbar
 end
@@ -114,7 +114,7 @@ figure('position', [200, 0, 1500, 800])
 for roi=1:18
     subplot(3,6,roi)
     title(listROIs(roi))
-    plotOnEgi(avMap.mean(:,roi))
+    plotOnEgi(avMap(:,roi))
     caxis([-150 150])
 end
 saveas(gcf,'figures/averageMap50sameRangeMEAN','png')

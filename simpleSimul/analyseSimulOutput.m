@@ -45,14 +45,14 @@ end
 end
 legend('N=2','N=8','N=20','N=50')
 set(gcf,'position',[100 100 1500 700])
-saveas(gcf,['figures' filesep 'metrics' modName{model}],'png')
+saveas(gcf,['figures' filesep 'metrics'],'png')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% plot BETAs for sbj=50, noise=10, bootstrap=1
 noise=3;sbj=size(simulERP,2);repBoot=1;
 listROIs = simulERP(1,1,1).listROIs;
 
-for model=1:nbModel
+for model=1:4
     currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(model,:,:));
     count = 1;
     figure;set(gcf,'position',[100,100,800,1000])
@@ -66,6 +66,8 @@ for model=1:nbModel
     end
     legend('left','right')
     saveas(gcf,['figures/betaErp' modName{model}],'png')
+    saveas(gcf,['figures/betaErp' modName{model}],'fig')
+    saveas(gcf,['figures/betaErp' modName{model}],'eps')
 end
 currBeta = simulERP(repBoot,sbj,noise).srcERP;
 count = 1;
@@ -79,8 +81,36 @@ for iRoi = 1:2:length(listROIs)
 end
 legend('left','right')
 saveas(gcf,'figures/betaErpSource','png')
+saveas(gcf,'figures/betaErpSource','fig')
+
+count = 1;
+yData = simulERP(repBoot,totSbj,level).data;
+yAvg = squeeze(mean(yData));
+figure;plotOnEgi(yAvg(:,50))
+figure;plotOnEgi(yAvg(:,120))
+figure;plotOnEgi(yAvg(:,180))
 
 
+currBeta = simulERP(repBoot,sbj,noise).srcERP;
+beta1 = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
+beta2 = squeeze(simulERP(repBoot,sbj,noise).beta(2,:,:));
+beta3 = squeeze(simulERP(repBoot,sbj,noise).beta(3,:,:));
+beta4 = squeeze(simulERP(repBoot,sbj,noise).beta(4,:,:));
+count=1;
+figure
+for iRoi = 1:2:length(listROIs)
+    subplot(5,9,count);hold on
+    plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+    subplot(5,9,count+9);hold on
+    plot(beta1(iRoi,:) / max(max(abs(beta1))) ,'LineWidth',2);ylim([-1 1]);
+    subplot(5,9,count+9*2);hold on
+    plot(beta2(iRoi,:) / max(max(abs(beta2))) ,'LineWidth',2);ylim([-1 1]);
+    subplot(5,9,count+9*3);hold on
+    plot(beta3(iRoi,:) / max(max(abs(beta3))) ,'LineWidth',2);ylim([-1 1]);
+    subplot(5,9,count+9*4);hold on
+    plot(beta4(iRoi,:) / max(max(abs(beta4))) ,'LineWidth',2);ylim([-1 1]);
+    count = count+1;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,3 +195,75 @@ for mm=nbModel+1:nbModel*2
 end
 legend('average','whole','ROI','Oracle');
 saveas(gcf,['figures' filesep 'nbOfUniROIs'],'png')
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+clearvars;close all;
+load('simulOutput/simulV2V4output.mat')
+% 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
+winERP = simulERP(1,1).winERP;
+nbModel = 7;
+SNRlevel = unique([simulERP.noise]);
+% initialise variables
+aucAve = zeros(size(simulERP,1),nbModel,size(simulERP,2));
+energyAve = aucAve;
+mseAveNorm = aucAve;
+for model=1:nbModel
+for repBoot=1:size(simulERP,1)
+    for totSbj=1:size(simulERP,2)
+        for level=1:size(simulERP,3)            
+        [aucAve(repBoot,totSbj,level,model), energyAve(repBoot,totSbj,level,model),mseAveNorm(repBoot,totSbj,level,model)] = ...
+            computeMetrics(squeeze(simulERP(repBoot,totSbj,level).beta(model,:,winERP)),simulERP(repBoot,totSbj,level).srcERP(:,winERP));        
+        end
+    end
+end
+end
+%%% plot metrics
+modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC'};
+figure;hold on
+for model=1:nbModel
+for ss=1:size(simulERP,2)
+    subplot(3,nbModel,model);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucAve(:,ss,:,model))),squeeze(std(aucAve(:,ss,:,model),1)),'LineWidth',2)
+    xlabel('log(SNR)');ylim([0 1]);ylabel('AUC')
+    title(modName(model))
+    subplot(3,nbModel,model+nbModel);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyAve(:,ss,:,model))),squeeze(std(energyAve(:,ss,:,model),1)),'LineWidth',2)
+    ylim([0 1]);ylabel('Energy');
+    subplot(3,nbModel,model+nbModel*2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:,model))),squeeze(std(mseAveNorm(:,ss,:,model),1)),'LineWidth',2)
+    ylabel('MSE');ylim([0 1])
+end
+end
+legend('N=2','N=8','N=20','N=50')
+set(gcf,'position',[100 100 1500 700])
+saveas(gcf,['figures' filesep 'metricsV2V4'],'png')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% plot BETAs for sbj=50, noise=10, bootstrap=1
+noise=3;sbj=size(simulERP,2);repBoot=1;
+listROIs = simulERP(1,1,1).listROIs;
+
+for model=1:4
+    currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(model,:,:));
+    count = 1;
+    figure;set(gcf,'position',[100,100,800,1000])
+    for iRoi = 1:2:length(listROIs)
+        % need to normalise the signal
+        subplot(3,3,count);hold on
+        plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+        plot(currBeta(iRoi+1,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+        tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+        ylim([-1 1]);count=count+1;
+    end
+    legend('left','right')
+    saveas(gcf,['figures/betaErpV2V4' modName{model}],'png')
+%     saveas(gcf,['figures/betaErpV2V4' modName{model}],'fig')
+%     saveas(gcf,['figures/betaErpV2V4' modName{model}],'eps')
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

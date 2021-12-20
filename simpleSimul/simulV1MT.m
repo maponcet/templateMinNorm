@@ -28,7 +28,7 @@ ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(ac
 
 nbSbjToInclude =[2 8 20 50];
 
-totBoot = 3;
+totBoot = 30;
 
 for repBoot=1:totBoot
     
@@ -85,7 +85,6 @@ for repBoot=1:totBoot
             for iSub=1:numSubs
                 % initialise matrix of source activity
                 sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
-                sourceNoise = sourceData; % no signal, used to compute SNR
                 for ss=1:length(ac_sources)
                     % note that if there is overlapping index (same idx for 2
                     % ROIs), the value in sourceData will be of the latest
@@ -180,4 +179,4 @@ for repBoot=1:totBoot
     end % sbj
 end % boot
 
-save('simulOutput/simulV1MToutput.mat','simulERP')
+save('simulOutput/simulV1MToutput.mat','simulERP','-v7.3')

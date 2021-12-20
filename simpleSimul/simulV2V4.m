@@ -28,7 +28,7 @@ ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(ac
 
 nbSbjToInclude =[2 8 20 50];
 
-totBoot = 3;
+totBoot = 30;
 
 for repBoot=1:totBoot
     
@@ -151,10 +151,10 @@ for repBoot=1:totBoot
             % average across subj
             retrieveWhole = squeeze(mean(regionWhole,1));
             retrieveROI = squeeze(mean(regionROI,1));
-            retrieveROIin = mean(betaROIin,3);
+            retrieveROIin = squeeze(mean(betaROIin,1));
             retrieveWholeLC = squeeze(mean(regionWholeLC,1));
             retrieveROILC = squeeze(mean(regionROILC,1));
-            retrieveROIinLC = mean(betaROIinLC,3);
+            retrieveROIinLC = squeeze(mean(betaROIinLC,1));
             
             % save simulation
             simulERP(repBoot,totSbj,level).listROIs = listROIs;
@@ -176,4 +176,4 @@ for repBoot=1:totBoot
     end % sbj
 end % boot
 
-save('simulV2V4output.mat','simulERP')
+save('simulOutput/simulV2V4output.mat','simulERP','-v7.3')
