@@ -51,19 +51,19 @@ for iSub=1:numSubs
 end
 
 %%%%%% "ICA"
-% stackY = reshape(permute(Y,[2 1 3]),[iSub*size(Y,2),size(Y,3)]);
-% [u1, s1, v1] = svd(stackY);
-% numComponents = 3;
-% Ylo = u1(:,1:numComponents)*s1(1:numComponents,1:numComponents)*v1(:, 1:numComponents)';
-% Y2 = reshape(Ylo,[size(Y,2),iSub,size(Y,3)]);
-% Y_avg = permute(Y2,[2 1 3]);
+stackY = reshape(permute(Y,[2 1 3]),[iSub*size(Y,2),size(Y,3)]);
+[u1, s1, v1] = svd(stackY);
+numComponents = 5;
+Ylo = u1(:,1:numComponents)*s1(1:numComponents,1:numComponents)*v1(:, 1:numComponents)';
+Y2 = reshape(Ylo,[size(Y,2),iSub,size(Y,3)]);
+Y_avg = permute(Y2,[2 1 3]);
 
 %% compute minimum norm
 % min_norm on average data: get beta values for each ROI over time
 [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
 
-regionWhole = zeros(numSubs,numROIs,length(Y_avg));
-regionROI = zeros(numSubs,numROIs,length(Y_avg));
+regionWhole = zeros(numROIs,length(Y_avg),numSubs);
+regionROI = zeros(numROIs,length(Y_avg),numSubs);
 regionROILC = regionWhole;
 regionWholeLC= regionWhole;
 betaROIin= regionWhole;
@@ -82,27 +82,45 @@ for iSub=1:numSubs
     % get the range
     range = [0 cumsum(rangeROI)]; % cumulative sum of elements
     % SUM (not average) the beta values per ROI (=across the indexes)
-    regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    regionROI(:,:,iSub) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+%     regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    regionROImean(:,:,iSub) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
     
     % need to find the indexes for whole brain -> use idxROIfwd
     % (no need to get the range)
-    regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-    regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+    regionWhole(:,:,iSub) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+%     regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
     
     % feed ROI per sbj instead of mesh
     sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
-    [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-    [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
+    [betaROIin(:,:,iSub), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
+%     [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
 end
 % average across subj
-retrieveWhole = squeeze(mean(regionWhole,1));
-retrieveROI = squeeze(mean(regionROI,1));
-retrieveROIin = squeeze(mean(betaROIin,1));
-retrieveROIinLC = squeeze(mean(betaROIinLC,1));
-retrieveWholeLC = squeeze(mean(regionWholeLC,1));
-retrieveROILC = squeeze(mean(regionROILC,1));        
+retrieveWhole = mean(regionWhole,3);
+retrieveROI = mean(regionROI,3);
+retrieveROIin = mean(betaROIin,3);
+% retrieveROIinLC = squeeze(mean(betaROIinLC,1));
+% retrieveWholeLC = squeeze(mean(regionWholeLC,1));
+% retrieveROILC = squeeze(mean(regionROILC,1));        
+retrieveROImean = mean(regionROImean,3);
 
+
+%%%%%%%%%% Exact copy PlosOne procedure
+stackedForwards=[];
+for iSub=1:numSubs
+    stackedForwards = blkdiag(stackedForwards, [roiFwd{iSub,:}]);
+end
+[betaPlos,lambdaPlos] = minNormFast(stackedForwards,Ylo,50);
+for iSub=1:numSubs
+    % get the number of indexes per ROI for this subj [same as above]
+    rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
+    range = [0 cumsum(rangeROI)];
+    region(:,:,iSub) = cell2mat(arrayfun(@(x) sum(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+    regionMean(:,:,iSub) = cell2mat(arrayfun(@(x) mean(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+end
+retrievePlos = mean(region,3); % for comparison with sum 
+retrievePlosMean = mean(regionMean,3); % = code
 
 %% Plots 
 count = 1;
@@ -127,17 +145,17 @@ for iRoi = 1:2:numROIs
     ylim([-1 1]);count=count+1;
 end
 saveas(gcf,['figures/realROI' num2str(numFq2keep)],'png')
-count = 1;
-figure;set(gcf,'position',[100,100,800,1000])
-for iRoi = 1:2:numROIs
-    % need to normalise the signal
-    subplot(3,3,count);hold on
-    plot(retrieveROILC(iRoi,:) / max(max(abs(retrieveROILC))) ,'LineWidth',2);
-    plot(retrieveROILC(iRoi+1,:) / max(max(abs(retrieveROILC))) ,'LineWidth',2);
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-    ylim([-1 1]);count=count+1;
-end
-saveas(gcf,['figures/realROILC' num2str(numFq2keep)],'png')
+% count = 1;
+% figure;set(gcf,'position',[100,100,800,1000])
+% for iRoi = 1:2:numROIs
+%     % need to normalise the signal
+%     subplot(3,3,count);hold on
+%     plot(retrieveROILC(iRoi,:) / max(max(abs(retrieveROILC))) ,'LineWidth',2);
+%     plot(retrieveROILC(iRoi+1,:) / max(max(abs(retrieveROILC))) ,'LineWidth',2);
+%     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%     ylim([-1 1]);count=count+1;
+% end
+% saveas(gcf,['figures/realROILC' num2str(numFq2keep)],'png')
 count = 1;
 figure;set(gcf,'position',[100,100,800,1000])
 for iRoi = 1:2:numROIs
@@ -149,17 +167,17 @@ for iRoi = 1:2:numROIs
     ylim([-1 1]);count=count+1;
 end
 saveas(gcf,['figures/realWhole' num2str(numFq2keep)],'png')
-count = 1;
-figure;set(gcf,'position',[100,100,800,1000])
-for iRoi = 1:2:numROIs
-    % need to normalise the signal
-    subplot(3,3,count);hold on
-    plot(retrieveWholeLC(iRoi,:) / max(max(abs(retrieveWholeLC))) ,'LineWidth',2);
-    plot(retrieveWholeLC(iRoi+1,:) / max(max(abs(retrieveWholeLC))) ,'LineWidth',2);
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-    ylim([-1 1]);count=count+1;
-end
-saveas(gcf,['figures/realWholeLC' num2str(numFq2keep)],'png')
+% count = 1;
+% figure;set(gcf,'position',[100,100,800,1000])
+% for iRoi = 1:2:numROIs
+%     % need to normalise the signal
+%     subplot(3,3,count);hold on
+%     plot(retrieveWholeLC(iRoi,:) / max(max(abs(retrieveWholeLC))) ,'LineWidth',2);
+%     plot(retrieveWholeLC(iRoi+1,:) / max(max(abs(retrieveWholeLC))) ,'LineWidth',2);
+%     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%     ylim([-1 1]);count=count+1;
+% end
+% saveas(gcf,['figures/realWholeLC' num2str(numFq2keep)],'png')
 count = 1;
 figure;set(gcf,'position',[100,100,800,1000])
 for iRoi = 1:2:numROIs
@@ -172,15 +190,36 @@ for iRoi = 1:2:numROIs
 end
 saveas(gcf,['figures/realOracle' num2str(numFq2keep)],'png')
 
+% count = 1;
+% figure;set(gcf,'position',[100,100,800,1000])
+% for iRoi = 1:2:numROIs
+%     % need to normalise the signal
+%     subplot(3,3,count);hold on
+%     plot(retrieveROIinLC(iRoi,:) / max(max(abs(retrieveROIinLC))) ,'LineWidth',2);
+%     plot(retrieveROIinLC(iRoi+1,:) / max(max(abs(retrieveROIinLC))) ,'LineWidth',2);
+%     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%     ylim([-1 1]);count=count+1;
+% end
+% saveas(gcf,['figures/realOracleLC' num2str(numFq2keep)],'png')
+
+
 count = 1;
 figure;set(gcf,'position',[100,100,800,1000])
 for iRoi = 1:2:numROIs
     % need to normalise the signal
     subplot(3,3,count);hold on
-    plot(retrieveROIinLC(iRoi,:) / max(max(abs(retrieveROIinLC))) ,'LineWidth',2);
-    plot(retrieveROIinLC(iRoi+1,:) / max(max(abs(retrieveROIinLC))) ,'LineWidth',2);
+    plot(retrievePlos(iRoi,:) / max(max(abs(retrievePlos))) ,'LineWidth',2);
+    plot(retrievePlos(iRoi+1,:) / max(max(abs(retrievePlos))) ,'LineWidth',2);
     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
     ylim([-1 1]);count=count+1;
 end
-saveas(gcf,['figures/realOracleLC' num2str(numFq2keep)],'png')
-
+count = 1;
+figure;set(gcf,'position',[100,100,800,1000])
+for iRoi = 1:2:numROIs
+    % need to normalise the signal
+    subplot(3,3,count);hold on
+    plot(retrievePlosMean(iRoi,:)  ,'LineWidth',2);
+    plot(retrievePlosMean(iRoi+1,:)  ,'LineWidth',2);
+    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+    ylim([-1 1]);count=count+1;
+end

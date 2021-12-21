@@ -12,7 +12,7 @@ numSubs = length(dirList);
 % some parameters
 nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
 SNRlevel = 200; % noise level, 200 times more signal than noise
-totBoot = 2; % nb of bootstrap
+totBoot = 30; % nb of bootstrap
 crossTalkTemplate = zeros(totBoot,numROIs,numROIs);
 crossTalkWhole = zeros(totBoot,numROIs,numROIs);
 crossTalkROI = zeros(totBoot,numROIs,numROIs);
@@ -144,6 +144,9 @@ for seedRoi = 1:numROIs
     end % end boostrap
     
 end % different activated sources
+
+save('simulOutput/simulCrossTalk200.mat','crossTalkTemplate','crossTalkWhole',...
+    'crossTalkROI','crossTalkROIin');
 
 figure;
 subplot(2,2,1);

@@ -3,14 +3,14 @@ clearvars;close all;
 % be aware that for N=1 it is NOT the same sbj that is plotted for
 % different SNR!
 
-addpath([pwd filesep 'subfunctions' filesep]);
-dataPath = '/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/';
+addpath(genpath([pwd filesep 'subfunctions']))
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
 dirList = dir([dataPath 'forward*']);
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-SNRlevel = [0.1 10 50 100 500 1000]; % noise level 10% = if the signal is 10 then the noise is 10*10, for 0.5 S=50/100
+SNRlevel = [0.1 1 10 200 10000]; % noise level 10% = if the signal is 10 then the noise is 10*10, for 0.5 S=50/100
 nLambdaRidge = 50; % for calculating minimum_norm, reg constant, hyper param in min norm
 numCols = 5; % For reducing dimensionality of data: use first X columns of v ([~, ~, v] = svd(Y);) as time basis (old code = 2, new = 5)
 % set 2 vectors of the left and right sources in the same order
@@ -29,7 +29,7 @@ snrRawTime = zeros(5,length(SNRlevel));
         
 for test=1:5   
     
-    %% Simulate sources (sourceERP)
+%% Simulate sources (sourceERP)
 % amplitude (1 to 10) and time function is different for each
 % source but the same for all sbj for a given bootstrap
 [srcAmp, srcSSVEP, srcERP,winERP] = createSourceROI(numROIs,ac_sources(1:length(ac_sources)/2),ac_sources((length(ac_sources)/2+1):end));
@@ -40,32 +40,33 @@ clf;
 f1=figure; set(gcf,'position',[100,100,1200,700]);hold on;
 f2=figure; set(gcf,'position',[100,100,1200,700]);hold on;
 
+
+% list of random sbj with replacement
+listSub = randi(length(dirList),numSubs,1);
+
+%% LOAD FWD
+fullFwd=cell(1,numSubs);roiFwd=cell(numSubs,numROIs);idxROIfwd=cell(numSubs,numROIs);
+for iSub=1:numSubs
+    clear fwdMatrix roiInfo
+    % fwd file
+    load([dataPath dirList(listSub(iSub)).name])
+    fullFwd{iSub} = fwdMatrix;
+    %             indexROI = cell2mat(arrayfun(@(x) cellfind({roiInfo.name},listROIs{x}),1:length(listROIs),'uni',false));
+    % go through each ROI and save the corresponding fwdMesh values
+    % corresponding to the indexes of that ROI
+    for rr=1:numROIs
+        indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
+        roiFwd{iSub,rr} = fwdMatrix(:,roiInfo(indexROI).meshIndices);
+        % to get roiFwd for one sbj= [roiFwd{iSub,:}]
+        % save the index for each ROI
+        idxROIfwd{iSub,rr} = roiInfo(indexROI).meshIndices;
+    end
+end
+        
+        
 for level=1:length(SNRlevel)
         noiseLevel = SNRlevel(level);           
-        % list of random sbj with replacement
-        listSub = randi(length(dirList),numSubs,1);
-        
-        %% LOAD FWD
-        fullFwd=cell(1,numSubs);roiFwd=cell(numSubs,numROIs);idxROIfwd=cell(numSubs,numROIs);
-        for iSub=1:numSubs
-            clear fwdMatrix roiInfo
-            % fwd file
-            load([dataPath dirList(listSub(iSub)).name])
-            fullFwd{iSub} = fwdMatrix;            
-%             indexROI = cell2mat(arrayfun(@(x) cellfind({roiInfo.name},listROIs{x}),1:length(listROIs),'uni',false));
-            % go through each ROI and save the corresponding fwdMesh values
-            % corresponding to the indexes of that ROI
-            for rr=1:numROIs
-                indexROI = find(strcmp(listROIs(rr),{roiInfo.name}));
-                roiFwd{iSub,rr} = fwdMatrix(:,roiInfo(indexROI).meshIndices); 
-                % to get roiFwd for one sbj= [roiFwd{iSub,:}]
-                % save the index for each ROI 
-                idxROIfwd{iSub,rr} = roiInfo(indexROI).meshIndices;
-            end
-        end
-        
-
-        
+          
         %% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj 
         % (using individual fwd model)
@@ -119,12 +120,14 @@ for level=1:length(SNRlevel)
         plot(squeeze(mean(Y(1:20,1,:),1))); % plot average 20 sbj
         plot(squeeze(mean(Y(1:50,1,:),1))); % plot average 50 sbj        
         legend('N=1','N=20','N=50')
-        title(['SNR' num2str(SNRlevel(level)) '% (power))'])
+        title(['SNR' num2str(SNRlevel(level))])
         figure(f2); 
         subplot(2,3,level);hold on;
-        for iSub = 1:6
+        for iSub = 1:4
             plot(squeeze(Y(iSub,1,:))); % plot S1
         end
+        title(['SNR' num2str(SNRlevel(level))])
+        legend('S1','S2','S3','S4')
         
 end % SNR
 saveas(f1,['figures' filesep 'checkSNRt' num2str(test)],'png')
