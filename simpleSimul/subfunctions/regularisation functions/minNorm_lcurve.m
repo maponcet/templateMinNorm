@@ -20,7 +20,7 @@ end
 
 betaMinNormBest = zeros(size(betaMinNorm{1}));
 for i = 1:size(b, 2)
-    betaMinNormBest(:, i) = tikhonov(u, s, v, b(:, i), lambda);
+    betaMinNormBest(:, i) = tikhonov(u, s, v, b(:, i), lambdaCurv);
 end
 
 

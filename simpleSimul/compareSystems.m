@@ -39,7 +39,7 @@ ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(ac
 
 numSubs = 50;
 
-totBoot = 3;
+totBoot = 30;
 
 
 for repBoot=1:totBoot
@@ -177,7 +177,7 @@ for repBoot=1:totBoot
     
 end
 
-save('simulOutput/simulSys.mat','simulSys')
+save('simulOutput/simulSysV1MT.mat','simulSys')
 
 
 

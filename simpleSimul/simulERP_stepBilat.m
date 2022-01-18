@@ -2,7 +2,7 @@ clearvars;close all;
 % manipulate the number of sources (picked randomly) per simulation
 % ALWAYS bilateral sources (if V1 is active, both left & right are)
 % only 2 windows: baseline and sources (10 timepoints each)
-% source is 1 (step, not ERP)
+% source is 1 (step, not ERP; set at 1, not random)
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
@@ -54,11 +54,6 @@ for totROI=1:numROIs/2
         % find the ROI index corresponding to the activeROIs
         ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
         
-        % amplitude (1 to 10) and time function is different for each
-        % source but the same for all sbj for a given bootstrap
-        % 1-45 = baseline
-        % 46-90 = all sources
-        % ERP & baseline timewindow
         timeBase = 1:10;
         winERP = 11:20;
         srcERP = zeros(numROIs,20);

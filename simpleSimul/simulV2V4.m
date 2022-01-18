@@ -1,13 +1,13 @@
 clearvars;close all;
-% simulate ERP from V1, MT, V1+MT in 3 different time windows
+% simulate ERP from V2V, V4, V2V+V4 in 3 different time windows
 % retrieve the sources using different methods (template, ROI, whole brain)
 % Each simulation uses a different set of sbj and ERP but the same one is
 % tested across different levels of noise and number of sbj
 
 % 1-45 = baseline
-% 46-90 = V1
-% 91-135 = MT
-% 136-180 = MT+V1
+% 46-90 = V2V
+% 91-135 = V4
+% 136-180 = V2V+V4
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
