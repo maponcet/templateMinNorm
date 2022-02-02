@@ -30,8 +30,8 @@ SNRlevel = [0.1 1 10 200 10000]; % 0.1 means 10 times more noise than signal, 10
 % SNRlevel = [0.1  10  10000]; % 0.1 means 10 times more noise than signal, 10 means 10 times more signal than noise
 nLambdaRidge = 10; % for calculating minimum_norm, reg constant, hyper param in min norm
 % set 2 vectors of the left and right sources in the same order
-sourceL = {'V1-L','MT-L'};
-sourceR = {'V1-R','MT-R'};
+sourceL = {'V2V-L','V4-L'};
+sourceR = {'V2V-R','V4-R'};
 % simulated signal
 activeROIs = [sourceL,sourceR]; % left sources then right sources to make it easier for copying the same signal over the 2 hemispheres
 % find the ROI index corresponding to the activeROIs
@@ -177,6 +177,6 @@ for repBoot=1:totBoot
     
 end
 
-save('simulOutput/simulSysV1MT.mat','simulSys','-v7.3')
+save('simulOutput/simulSysV2V4.mat','simulSys','-v7.3')
 
 

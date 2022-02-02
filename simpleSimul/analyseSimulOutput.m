@@ -8,7 +8,7 @@ load('simulOutput/simulV1MToutput.mat')
 
 winERP = simulERP(1,1,1).winERP;
 SNRlevel = unique([simulERP.noise]);
-nbModel = 7;
+nbModel = 8;
 % initialise variables
 aucAve = zeros(size(simulERP,1),size(simulERP,2),size(simulERP,3),nbModel);
 energyAve = aucAve;
@@ -26,7 +26,7 @@ end
 end
 
 %%% plot metrics
-modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC'};
+modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','averageOracle'};
 
 figure;hold on
 for model=1:nbModel
@@ -118,7 +118,7 @@ clearvars;close all;
 load('simulOutput/simulV2V4output.mat')
 % 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
 winERP = simulERP(1,1).winERP;
-nbModel = 7;
+nbModel = 8;
 SNRlevel = unique([simulERP.noise]);
 % initialise variables
 aucAve = zeros(size(simulERP,1),nbModel,size(simulERP,2));
@@ -135,7 +135,7 @@ for repBoot=1:size(simulERP,1)
 end
 end
 %%% plot metrics
-modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC'};
+modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','averageOracle'};
 figure;hold on
 for model=1:nbModel
 for ss=1:size(simulERP,2)
@@ -243,7 +243,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clearvars;close all;
-load('simulOutput/simulRandUni.mat')
+% load('simulOutput/simulRandUni.mat')
+load('simulOutput/simulStepUni.mat')
 % 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
 winERP = simulUni(1,1).winERP;
 nbModel = 4;
@@ -288,7 +289,7 @@ for mm=nbModel+1:nbModel*2
     ylabel('MSE');ylim([0 1]);xlim([1 9]);
 end
 legend('average','whole','ROI','Oracle');
-saveas(gcf,['figures' filesep 'nbOfUniROIs'],'png')
+saveas(gcf,['figures' filesep 'nbOfUniROIsStep'],'png')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -358,11 +359,11 @@ saveas(gcf,['figures' filesep 'metricsV1MTstep'],'png')
 clearvars;close all;
 
 % load simulation results
-load('simulOutput/simulSysV2V4.mat')
+load('simulOutput/simulSysV1MT.mat')
 
 winERP = simulSys(1,1,1).winERP;
 SNRlevel = unique([simulSys.noise]);
-nbModel = 4;
+nbModel = 5;
 
 % initialise variables
 aucAve = zeros(size(simulSys,1),size(simulSys,3),size(simulSys,2),nbModel);
@@ -398,7 +399,57 @@ for model=1:nbModel
     ylabel('MSE');ylim([0 1])
 end
 end
-legend('Template','Whole','ROI','Oracle')
+legend('Template','Whole','ROI','Oracle','TemplateOracle')
+set(gcf,'position',[100 100 1500 700])
+saveas(gcf,['figures' filesep 'compSysV1MT'],'png')
+
+%%%%%%%%%%%%%%%%
+% compare systems
+% compute auc, mse, relative energy & plot them
+clearvars;close all;
+
+% load simulation results
+load('simulOutput/simulSysV2V4.mat')
+
+winERP = simulSys(1,1,1).winERP;
+SNRlevel = unique([simulSys.noise]);
+nbModel = 5;
+
+% initialise variables
+aucAve = zeros(size(simulSys,1),size(simulSys,3),size(simulSys,2),nbModel);
+energyAve = aucAve;
+mseAveNorm = aucAve;
+
+for model=1:nbModel
+for sys=1:size(simulSys,3)
+    for level=1:size(simulSys,2)
+        for repBoot=1:size(simulSys,1)
+            [aucAve(repBoot,level,sys,model), energyAve(repBoot,level,sys,model),mseAveNorm(repBoot,level,sys,model)] = ...
+                computeMetrics(squeeze(simulSys(repBoot,level,sys).beta(model,:,winERP)),simulSys(repBoot,level,sys).srcERP(:,winERP));
+        end
+    end
+end
+end
+
+%%% plot metrics
+sysName = {'32','64','128','256'};
+
+figure;hold on
+for sys=1:size(simulSys,3)
+for model=1:nbModel
+    subplot(3,size(simulSys,3),sys);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2)
+    xlabel('log(SNR)');ylim([0 1]);ylabel('AUC')
+    title(sysName(sys))
+    subplot(3,size(simulSys,3),sys+size(simulSys,3));hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2)
+    ylim([0 1]);ylabel('Energy');
+    subplot(3,size(simulSys,3),sys+size(simulSys,3)*2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2)
+    ylabel('MSE');ylim([0 1])
+end
+end
+legend('Template','Whole','ROI','Oracle','TemplateOracle')
 set(gcf,'position',[100 100 1500 700])
 saveas(gcf,['figures' filesep 'compSysV2V4'],'png')
 

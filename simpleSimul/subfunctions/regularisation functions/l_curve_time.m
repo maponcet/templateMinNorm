@@ -63,8 +63,8 @@ if (strncmp(method,'Tikh',4) | strncmp(method,'tikh',4))
   %beta = reshape(beta(1:p,:),size(beta(1:p,:),1)*size(beta(1:p,:),2),1);   % Allows to deal with several time points
     
   eta = zeros(npoints,1); rho = eta; reg_param = eta; s2 = s.^2;
-  reg_param(npoints) = max([s(p),s(1)*smin_ratio]);
-%   reg_param(npoints) = max(max([s(p),s(1)*smin_ratio]),0.5);
+%   reg_param(npoints) = max([s(p),s(1)*smin_ratio]);
+  reg_param(npoints) = max(max([s(p),s(1)*smin_ratio]),0.5);
   ratio = (s(1)/reg_param(npoints))^(1/(npoints-1));
   
   for i=npoints-1:-1:1, reg_param(i) = ratio*reg_param(i+1); end
@@ -145,15 +145,15 @@ if (locate)
   [reg_corner,rho_c,eta_c,reg_curv] = l_corner(rho,eta,reg_param,U,sm,b,method);
 end
 
-% Make plot.
-figure;
-plot_lc(rho,eta,marker,ps,reg_param);
-if locate
-  ax = axis;
-  HoldState = ishold; hold on;
-  loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
-         [rho_c,rho_c],[min(eta)/100,eta_c],':r')
-  title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
-  axis(ax)
-  if (~HoldState), hold off; end
-end
+% % Make plot.
+% figure;
+% plot_lc(rho,eta,marker,ps,reg_param);
+% if locate
+%   ax = axis;
+%   HoldState = ishold; hold on;
+%   loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
+%          [rho_c,rho_c],[min(eta)/100,eta_c],':r')
+%   title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
+%   axis(ax)
+%   if (~HoldState), hold off; end
+% end

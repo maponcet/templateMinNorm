@@ -33,6 +33,10 @@ function [reg_corner,reg_param] = l_curve_modified(U,sm,b,method,L,V)
 % Modified to include time matrix + force min lambda to be 0.5 + use
 % l_corner_modified function
 
+% 2021 modified to save time: use l_corner_modified, no plot, don't return
+% rho,eta,reg_param (used for plot)
+
+
 % Set defaults.
 if (nargin==3), method='Tikh'; end  % Tikhonov reg. is default.
 npoints = 200; % Number of points on the L-curve for Tikh and dsvd.
@@ -144,7 +148,7 @@ end
 
 % Locate the "corner" of the L-curve, if required.
 if (locate)
-  [reg_corner,rho_c,eta_c] = l_corner_modified(rho,eta,reg_param,U,sm,b,method);
+  [reg_corner] = l_corner_modified(rho,eta,reg_param,U,sm,b,method);
 end
 
 % % Make plot.

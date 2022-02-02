@@ -98,6 +98,7 @@ if (strncmp(method,'Tikh',4) || strncmp(method,'tikh',4))
 
   kappa_max = - lcfun(reg_c,s,beta,xi); % Maximum curvature.
 
+  
   [~,~,k] = curvature([log(rho),log(eta)]);
    [~,gi_cur] = max(k(:,1));
    reg_c_cur = reg_param(gi_cur);
@@ -113,13 +114,13 @@ if (strncmp(method,'Tikh',4) || strncmp(method,'tikh',4))
     if (m>n), rho_c = sqrt(rho_c^2 + norm(b0)^2); end
   end
   
-  figure;subplot(3,1,1);
-  loglog(rho,eta,'linewidth',2);ylabel('solution norm || x ||_2')
-  subplot(3,1,2);semilogx(rho,-k(:,1),'linewidth',2);ylabel('g-curvature');
-  title(['Curvature Corner=',num2str(reg_c_cur)]);
-  subplot(3,1,3);semilogx(rho,g,'linewidth',2);ylabel('g-curvature');
-  xlabel('residual norm || A x - b ||_2');
-  title(['Lcfun Corner=',num2str(reg_c)]);
+%   figure;subplot(3,1,1);
+%   loglog(rho,eta,'linewidth',2);ylabel('solution norm || x ||_2')
+%   subplot(3,1,2);semilogx(rho,-k(:,1),'linewidth',2);ylabel('g-curvature');
+%   title(['Curvature Corner=',num2str(reg_c_cur)]);
+%   subplot(3,1,3);semilogx(rho,g,'linewidth',2);ylabel('g-curvature');
+%   xlabel('residual norm || A x - b ||_2');
+%   title(['Lcfun Corner=',num2str(reg_c)]);
   
 elseif (strncmp(method,'tsvd',4) || strncmp(method,'tgsv',4) || ...
         strncmp(method,'mtsv',4) || strncmp(method,'none',4))

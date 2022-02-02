@@ -10,11 +10,11 @@ load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-noiseLevel = 10; % 10 times more signal than noise
-nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
+noiseLevel = 200; % 10 times more signal than noise
+nLambdaRidge = 10; % for calculating minimum_norm, reg constant, hyper param in min norm
 
 % nbSbjToInclude =[2 8 20 50];
-numSubs = 20;
+numSubs = 50;
 
 totBoot = 3;
 

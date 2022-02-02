@@ -1,8 +1,7 @@
 clearvars;close all;
 % manipulate the number of sources (picked randomly) per simulation
-% ALWAYS bilateral sources (if V1 is active, both left & right are)
-% only 2 windows: baseline and sources (10 timepoints each)
-% source is 1 (step, not ERP; set at 1, not random)
+% ALWAYS unilateral sources 
+% only 2 windows: baseline and sources, active=1 or not=0 (step)
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
@@ -47,17 +46,18 @@ for totROI=1:numROIs/2
         end
         
         %% Simulate sources
-        roiActive = randsample(1:2:numROIs,totROI);
-        sourceL = listROIs(roiActive);
-        sourceR = listROIs(roiActive+1);
-        activeROIs = [sourceL,sourceR];
-        % find the ROI index corresponding to the activeROIs
-        ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
+        if mod(repBoot,2) % only left sources
+            uniROI = 1:2:numROIs;
+        else % only right sources
+            uniROI = 2:2:numROIs;
+        end
+        ac_sources = randsample(uniROI,totROI);
+        source = listROIs(ac_sources);
         
         timeBase = 1:10;
         winERP = 11:20;
         srcERP = zeros(numROIs,20);
-        srcERP(ac_sources,winERP) = 1;    
+        srcERP(ac_sources,winERP) = 1;  
         
         %%% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj
@@ -92,14 +92,17 @@ for totROI=1:numROIs/2
         %% compute minimum norm
         % min_norm on average data: get beta values for each ROI over time
         [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+        [betaAverageUni, lambdaUni] = minNormFast_lcurve(avMap(:,uniROI), squeeze(mean(Y_avg,1)));
         
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));
-        betaROIin = regionWhole;
-        betaROIinLC = regionWhole;
+        betaROIin = regionROI;
+        regionWholeUni = zeros(numSubs,numROIs/2,length(srcERP));
+        regionROIUni = zeros(numSubs,numROIs/2,length(srcERP));
+        betaROIinUni = regionWholeUni;
         
         for iSub=1:numSubs
-            % regular minimum_norm: on the 20484 indexes per sbj
+            % minimum_norm: on the 20484 indexes per sbj
             [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
             [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
      
@@ -112,37 +115,56 @@ for totROI=1:numROIs/2
             regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
             
             % need to find the indexes for whole brain -> use idxROIfwd
-            % (no need to get the range)
             regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+            
+            % minimum_norm: on the 20484 indexes per sbj
+            [betaWholeUni,lambdaWholeUni] = minNormFast(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
+            [betaROIUni, lambdaROIUni] = minNormFast([roiFwd{iSub,uniROI}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
+     
+            % beta values are for the indexes, but I want it per ROI
+            % get the number of indexes per ROI for this subj
+            rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),uniROI,'uni',false));
+            % get the range
+            range = [0 cumsum(rangeROI)]; % cumulative sum of elements
+            % SUM (not average) the beta values per ROI (=across the indexes)
+            regionROIUni(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROIUni(range(x)+1:range(x+1), :)),1:numROIs/2,'uni',false)');
+            
+            % need to find the indexes for whole brain -> use idxROIfwd
+            regionWholeUni(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeUni(idxROIfwd{iSub,x},:)),uniROI,'uni',false)');
             
             % feed ROI per sbj instead of mesh
             sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
             [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-            [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
+            sbjROIUni = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),uniROI,'uni',false));
+            [betaROIinUni(iSub,:,:), lambdaGridMinNormROIinUni] = minNormFast(sbjROIUni, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
         end
         % average across subj
         retrieveWhole = squeeze(mean(regionWhole,1));
         retrieveROI = squeeze(mean(regionROI,1));
         retrieveROIin = squeeze(mean(betaROIin,1));
-        retrieveROIinLC = squeeze(mean(betaROIinLC,1));
-
-        % save simulation
-        simulBilat(repBoot,totROI).listROIs = listROIs;
-        simulBilat(repBoot,totROI).listSub = listSub;
-        simulBilat(repBoot,totROI).activeROIs = activeROIs ;
-        simulBilat(repBoot,totROI).activeSources = ac_sources ;
-        simulBilat(repBoot,totROI).winERP = winERP;
-        simulBilat(repBoot,totROI).srcERP = srcERP;
-        simulBilat(repBoot,totROI).data = Y_avg;
-        simulBilat(repBoot,totROI).beta(1,:,:) = betaAverage;
-        simulBilat(repBoot,totROI).beta(2,:,:) = retrieveWhole;
-        simulBilat(repBoot,totROI).beta(3,:,:) = retrieveROI;
-        simulBilat(repBoot,totROI).beta(4,:,:) = retrieveROIin;
-        simulBilat(repBoot,totROI).beta(5,:,:) = retrieveROIinLC;
+        retrieveWholeUni = squeeze(mean(regionWholeUni,1));
+        retrieveROIUni = squeeze(mean(regionROIUni,1));
+        retrieveROIinUni = squeeze(mean(betaROIinUni,1));
         
+        % save simulation
+        simulUni(repBoot,totROI).listROIs = listROIs;
+        simulUni(repBoot,totROI).listSub = listSub;
+        simulUni(repBoot,totROI).source = source ;
+        simulUni(repBoot,totROI).winERP = winERP;
+        simulUni(repBoot,totROI).srcERP = srcERP;
+        simulUni(repBoot,totROI).srcERPUni = srcERP(uniROI,:);
+        simulUni(repBoot,totROI).data = Y_avg;
+        simulUni(repBoot,totROI).beta(1,:,:) = betaAverage;
+        simulUni(repBoot,totROI).beta(2,:,:) = retrieveWhole;
+        simulUni(repBoot,totROI).beta(3,:,:) = retrieveROI;
+        simulUni(repBoot,totROI).beta(4,:,:) = retrieveROIin;
+        simulUni(repBoot,totROI).betaUni(1,:,:) = betaAverageUni;
+        simulUni(repBoot,totROI).betaUni(2,:,:) = retrieveWholeUni;
+        simulUni(repBoot,totROI).betaUni(3,:,:) = retrieveROIUni;
+        simulUni(repBoot,totROI).betaUni(4,:,:) = retrieveROIinUni;        
         
     end % boot
 end % nb of ROI
 
-save(['simulOutput' filesep 'simulStepBilat.mat'],'simulBilat')
+save('simulOutput/simulStepUni.mat','simulUni','-v7.3')
 
