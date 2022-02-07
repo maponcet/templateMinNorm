@@ -12,7 +12,7 @@ numROIs = length(listROIs);
 
 % some parameters
 noiseLevel = 200; 
-nLambdaRidge = 10; % for calculating minimum_norm, reg constant, hyper param in min norm
+nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
 
 % nbSbjToInclude =[2 8 20 50];
 numSubs = 50;
@@ -90,8 +90,11 @@ for totROI=1:numROIs/2
         
         
         %% compute minimum norm
-        % min_norm on average data: get beta values for each ROI over time
-        [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+        % min_norm on average data: get beta values
+        % corner computed using either lcfun or curvature (which is chosen
+        % here: betaAverage). betabest is with best lambda
+        [betaLcFun, betaAverage, betaBest, lambdaLcFun, lambdaCurv, lambdaBest, ...
+            lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)), srcERP);
         
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));
@@ -139,10 +142,10 @@ for totROI=1:numROIs/2
         simulBilat(repBoot,totROI).beta(3,:,:) = retrieveROI;
         simulBilat(repBoot,totROI).beta(4,:,:) = retrieveROIin;
         simulBilat(repBoot,totROI).beta(5,:,:) = retrieveROIinLC;
-        
+        simulBilat(repBoot,totROI).beta(6,:,:) = betaBest;
         
     end % boot
 end % nb of ROI
 
-save(['simulOutput' filesep 'simulStepBilat.mat'],'simulBilat')
+save(['simulOutput' filesep 'simulStepBilat.mat'],'simulBilat','-v7.3')
 

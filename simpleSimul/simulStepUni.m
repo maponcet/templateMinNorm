@@ -2,6 +2,7 @@ clearvars;close all;
 % manipulate the number of sources (picked randomly) per simulation
 % ALWAYS unilateral sources 
 % only 2 windows: baseline and sources, active=1 or not=0 (step)
+% boostrap odd = left, even = right sources
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';

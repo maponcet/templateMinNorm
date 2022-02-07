@@ -1,5 +1,7 @@
 function [beta, betaCurv, betaBest, lambda, lambdaCurv, lambdaBest, ...
     lambdaGridMinNorm] = minNorm_lcurve_bestRegul( G , b, source)
+% beta using lambdas computed from corner of lcfun (beta), curvature
+% (betaCurv), best lambda from min MSE (betaBest)
 
 [u,s,v] = csvd(G);
 
@@ -16,13 +18,13 @@ for i = 1:numel(lambdaGridMinNorm)
     end
 end
 
-% compute beta for lambda
+% compute beta for lambda corner using lcfun
 beta = zeros(size(betaMinNorm{1}));
 for i = 1:size(b, 2)
-    beta(:, i) = tikhonov(u, s, v, b(:, i), lambdaCurv);
+    beta(:, i) = tikhonov(u, s, v, b(:, i), lambda);
 end
 
-% compute beta for lambdaCurv
+% compute beta for lambdaCurv corner using curvature function
 betaCurv = zeros(size(betaMinNorm{1}));
 for i = 1:size(b, 2)
     betaCurv(:, i) = tikhonov(u, s, v, b(:, i), lambdaCurv);
@@ -30,7 +32,7 @@ end
 
 % compute beta for lambda chosen based on min MSE
 % first compute MSE
-winERP = 46:180;
+% winERP = 46:180;
 mseTruth = zeros(length(betaMinNorm),1);
 for iLambda = 1:length(betaMinNorm)
     mseTruth(iLambda) = sum(sum((betaMinNorm{iLambda}-source).^2));
