@@ -17,6 +17,7 @@ crossTalkTemplate = zeros(totBoot,numROIs,numROIs);
 crossTalkWhole = zeros(totBoot,numROIs,numROIs);
 crossTalkROI = zeros(totBoot,numROIs,numROIs);
 crossTalkROIin = crossTalkTemplate;
+crossTalkTemplateBest= crossTalkTemplate;
 
 for seedRoi = 1:numROIs
     
@@ -94,7 +95,9 @@ for seedRoi = 1:numROIs
         %% compute minimum norm    
         % min_norm: get beta values for each ROI over time 
         [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
-
+        [betaLCFUN, betaCurv, betaBest, lambdaLCFUN, lambdaCurv, lambdaBest, ...
+            lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)),srcERP);
+        
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));
         betaROIin = regionWhole;
@@ -129,15 +132,17 @@ for seedRoi = 1:numROIs
         %% amount of crosstalk
         % leakage: amplitude signal in all areas, the "true" one is used
         % for normalisation (=1). Use RMS
-        normTerm = rms(betaAverage(seedRoi,:));
+        normTerm = rms(betaCurv(seedRoi,:));
+        normTermBest = rms(betaBest(seedRoi,:));
         normTermWhole = rms(retrieveWhole(seedRoi,:));
         normTermROI = rms(retrieveROI(seedRoi,:));
         normTermROIin = rms(retrieveROIin(seedRoi,:));
         for iRoi = 1:numROIs
-            crossTalkTemplate(repBoot,seedRoi,iRoi) = rms(betaAverage(iRoi,:)) / normTerm;
+            crossTalkTemplate(repBoot,seedRoi,iRoi) = rms(betaCurv(iRoi,:)) / normTerm;
             crossTalkWhole(repBoot,seedRoi,iRoi) = rms(retrieveWhole(iRoi,:)) / normTermWhole;
             crossTalkROI(repBoot,seedRoi,iRoi) = rms(retrieveROI(iRoi,:)) / normTermROI;
             crossTalkROIin(repBoot,seedRoi,iRoi) = rms(retrieveROIin(iRoi,:)) / normTermROIin;
+            crossTalkTemplateBest(repBoot,seedRoi,iRoi) = rms(betaBest(iRoi,:)) / normTermBest;
         end
              
         
@@ -146,30 +151,35 @@ for seedRoi = 1:numROIs
 end % different activated sources
 
 save('simulOutput/simulCrossTalk200.mat','crossTalkTemplate','crossTalkWhole',...
-    'crossTalkROI','crossTalkROIin');
+    'crossTalkROI','crossTalkROIin','crossTalkTemplateBest');
 
 figure;
-subplot(2,2,1);
+subplot(2,3,1);
 imagesc(squeeze(mean(crossTalkTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
 ylabel('seedArea');xlabel('predictArea')
 title('templateBased')
-subplot(2,2,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+subplot(2,3,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('Whole gcv')
-subplot(2,2,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+subplot(2,3,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('ROI gcv')
-subplot(2,2,4);imagesc(squeeze(mean(crossTalkROIin(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+subplot(2,3,4);imagesc(squeeze(mean(crossTalkROIin(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
 set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
 set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
 ylabel('seedArea');xlabel('predictArea')
 title('Oracle')
+subplot(2,3,5);imagesc(squeeze(mean(crossTalkTemplateBest(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+ylabel('seedArea');xlabel('predictArea')
+title('template best reg param')
 set(gcf,'position',[100,100,1800,800])
 saveas(gcf,['figures' filesep 'crossTalkStepSNR' num2str(SNRlevel)],'png')
 
