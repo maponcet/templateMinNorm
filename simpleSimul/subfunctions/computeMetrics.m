@@ -7,10 +7,14 @@ function [auc, energy,mseNorm] = computeMetrics(beta,sourceOverTime)
 %%%%% AUC
 aucTime = zeros(1,size(beta,2));
 srcOn = sourceOverTime~=0;
-for nT = 1:size(beta,2)
-    aucTime(nT) = rocArea( abs(beta(:,nT)) , srcOn(:,nT) );
+if isempty(find(srcOn~=1))
+    auc=NaN;
+else
+    for nT = 1:size(beta,2)
+        aucTime(nT) = rocArea( abs(beta(:,nT)) , srcOn(:,nT) );
+    end
+    auc = mean(aucTime);
 end
-auc = mean(aucTime);
 
 %%%%% relative energy
 norm_beta= zeros(size(beta,1),size(beta,2)); relEnergy= zeros(1,size(beta,2));
