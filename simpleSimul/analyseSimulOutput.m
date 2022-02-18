@@ -206,24 +206,41 @@ for model=1:nbModel
     end
 end
 
-% %%% test SNR energy
-% % initialise variables
-% pctEnergy = zeros(size(simulBilat,1),nbModel,size(simulBilat,2));
-% winBaseline = 1:(min(winERP)-1);
-% for model=1:nbModel
-%     for repBoot=1:size(simulBilat,1)
-%         for totROI=1:size(simulBilat,2)
-%             [pctEnergy(repBoot,model,totROI), pctEnergy2(repBoot,model,totROI),...
-%                 srcPct(repBoot,model,totROI)]= computeMetricsSNR_test...
-%                 (squeeze(simulBilat(repBoot,totROI).beta(model,:,:)),...
-%                 simulBilat(repBoot,totROI).srcERP,winBaseline);
-%         end
-%     end
+%%% test SNR energy
+% initialise variables
+snr = zeros(size(simulBilat,1),nbModel,size(simulBilat,2));
+snrPrct = snr;
+winBaseline = 1:(min(winERP)-1);
+for model=1:nbModel
+    for repBoot=1:size(simulBilat,1)
+        for totROI=1:size(simulBilat,2)
+            [snr(repBoot,model,totROI), snrPrct(repBoot,model,totROI)]= computeMetricsSNR_test...
+                (squeeze(simulBilat(repBoot,totROI).beta(model,:,:)),...
+                simulBilat(repBoot,totROI).srcERP,winBaseline);
+        end
+    end
+end
+
+figure;hold on;
+for model=1:6
+    plot(2:2:18,log(mean(squeeze(snr(:,model,:)))),'LineWidth',2)
+end
+xlabel('nb active ROIs');ylabel('log SNR (A/C)')
+legend('average','whole','ROI','OracleGCV','OracleLcurve','averageOracle','location','best');
+saveas(gcf,['figures' filesep 'testSNRbilat'],'png')
+
+figure;hold on;
+for model=1:6
+    plot(2:2:18,mean(squeeze(snrPrct(:,model,:))),'LineWidth',2)
+end
+xlabel('nb active ROIs');ylabel('log source % (A/(A+C)')
+legend('average','whole','ROI','OracleGCV','OracleLcurve','averageOracle','location','best');
+saveas(gcf,['figures' filesep 'testSNR%bilat'],'png')
+
+% figure;hold on
+% for mm=1:nbModel
+% errorbar(2:2:18,squeeze(mean(pctEnergy(:,mm,:))),squeeze(std(pctEnergy(:,mm,:),1)),'LineWidth',2)
 % end
-% % figure;hold on
-% % for mm=1:nbModel
-% % errorbar(2:2:18,squeeze(mean(pctEnergy(:,mm,:))),squeeze(std(pctEnergy(:,mm,:),1)),'LineWidth',2)
-% % end
 
 %%% plot metrics
 % figure;
@@ -519,3 +536,86 @@ legend('Template','Whole','ROI','Oracle','TemplateOracle')
 set(gcf,'position',[100 100 1500 700])
 saveas(gcf,['figures' filesep 'compSysV2V4'],'png')
 
+
+%%%%%%%%%%%%%%%%
+% compare systems
+% compute auc, mse, relative energy & plot them
+clearvars;close all;
+% load simulation results
+load('simulOutput/simulSysRand.mat')
+winERP = simulSys(1,1,1).winERP;
+SNRlevel = unique([simulSys.noise]);
+nbModel = 1;
+% initialise variables
+aucAve = zeros(size(simulSys,1),size(simulSys,3),size(simulSys,2),nbModel);
+energyAve = aucAve;
+mseAveNorm = aucAve;
+for model=1:nbModel
+for sys=1:size(simulSys,3)
+    for level=1:size(simulSys,2)
+        for repBoot=1:size(simulSys,1)
+            [aucAve(repBoot,level,sys,model), energyAve(repBoot,level,sys,model),mseAveNorm(repBoot,level,sys,model)] = ...
+                computeMetrics(squeeze(simulSys(repBoot,level,sys).beta(model,:,winERP)),simulSys(repBoot,level,sys).srcERP(:,winERP));
+        end
+    end
+end
+end
+%%% plot metrics for template
+figure;hold on
+for sys=1:size(simulSys,3)
+    subplot(1,3,1);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2)
+    xlabel('log(SNR)');ylim([0 1]);ylabel('AUC')
+    subplot(1,3,2);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2)
+    ylim([0 1]);ylabel('Energy');
+    subplot(1,3,3);hold on;
+    errorbar(log(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2)
+    ylabel('MSE');ylim([0 1])
+end
+legend({'32','64','128','256'})
+set(gcf,'position',[500 800 800 300])
+saveas(gcf,['figures' filesep 'compSysRandTemplate'],'png')
+
+
+
+%%%%% test SNR
+load('simulOutput/simulV1MToutput.mat')
+
+winERP = simulERP(1,1,1).winERP;
+SNRlevel = unique([simulERP.noise]);
+nbModel = 8;
+% initialise variables
+aucAve = zeros(size(simulERP,1),size(simulERP,2),size(simulERP,3),nbModel);
+energyAve = aucAve;
+mseAveNorm = aucAve;
+winBaseline = 1:min(winERP)-1;
+
+for model=1:nbModel
+for repBoot=1:size(simulERP,1)
+    for totSbj=1:size(simulERP,2)
+        for level=1:size(simulERP,3)            
+%         [aucAve(repBoot,totSbj,level,model), energyAve(repBoot,totSbj,level,model),mseAveNorm(repBoot,totSbj,level,model)] = ...
+%             computeMetrics(squeeze(simulERP(repBoot,totSbj,level).beta(model,:,winERP)),simulERP(repBoot,totSbj,level).srcERP(:,winERP));        
+        [snr(repBoot,totSbj,level,model), snrPrct(repBoot,totSbj,level,model)]= computeMetricsSNR_test...
+                (squeeze(simulERP(repBoot,totSbj,level).beta(model,:,:)),...
+                simulERP(repBoot,totSbj,level).srcERP,winBaseline);        
+        end
+    end
+end
+end
+
+figure;hold on;
+for model=[1:4 8]
+    plot(log([0.1 1 10 200 10000]),log(mean(squeeze(snr(:,size(simulERP,2),:,model)))),'LineWidth',2)
+end
+xlabel('log noise level');ylabel('log SNR (A/C')
+legend({'average','whole','ROI','Oracle','averageOracle'},'location','best');
+saveas(gcf,['figures' filesep 'testSNR'],'png')
+figure;hold on;
+for model=[1:4 8]
+    plot(log([0.1 1 10 200 10000]),mean(squeeze(snrPrct(:,size(simulERP,2),:,model))),'LineWidth',2)
+end
+xlabel('log noise level');ylabel('source % (A/(A+C)')
+legend({'average','whole','ROI','Oracle','averageOracle'},'location','best');
+saveas(gcf,['figures' filesep 'testSNR%'],'png')
