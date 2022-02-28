@@ -260,7 +260,7 @@ saveas(gcf,['figures' filesep 'testSNR%bilat'],'png')
 % end
 % legend('average','whole','ROI','OracleGCV','OracleLcurve');
 figure;
-for mm=1:nbModel
+for mm=[1:4 6]
     subplot(1,3,1);hold on;
     errorbar(2:2:18,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2)
     xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([2 18]);
@@ -271,7 +271,7 @@ for mm=1:nbModel
     errorbar(2:2:18,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2)
     ylabel('MSE');ylim([0 1]);xlim([2 18]);
 end
-legend('average','whole','ROI','OracleGCV','OracleLcurve','averageOracle');
+legend('average','whole','ROI','OracleGCV','averageOracle');
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep'],'png')
 
 
@@ -545,7 +545,7 @@ clearvars;close all;
 load('simulOutput/simulSysRand.mat')
 winERP = simulSys(1,1,1).winERP;
 SNRlevel = unique([simulSys.noise]);
-nbModel = 1;
+nbModel = 5;
 % initialise variables
 aucAve = zeros(size(simulSys,1),size(simulSys,3),size(simulSys,2),nbModel);
 energyAve = aucAve;
@@ -561,6 +561,8 @@ for sys=1:size(simulSys,3)
 end
 end
 %%% plot metrics for template
+nameModel = {'Template','Whole','ROI','Oracle','TemplateOracle'};
+for model=1:nbModel
 figure;hold on
 for sys=1:size(simulSys,3)
     subplot(1,3,1);hold on;
@@ -575,8 +577,9 @@ for sys=1:size(simulSys,3)
 end
 legend({'32','64','128','256'})
 set(gcf,'position',[500 800 800 300])
-saveas(gcf,['figures' filesep 'compSysRandTemplate'],'png')
-
+title(nameModel{model})
+saveas(gcf,['figures' filesep 'compSysRand' nameModel{model}],'png')
+end
 
 
 %%%%% test SNR
