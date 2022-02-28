@@ -36,9 +36,9 @@ for test=1:5
 % ERP baseline timewindow
 timeBase = setdiff(1:size(srcERP,2),winERP);
 
-clf;
+% clf;
 f1=figure; set(gcf,'position',[100,100,1200,700]);hold on;
-f2=figure; set(gcf,'position',[100,100,1200,700]);hold on;
+% f2=figure; set(gcf,'position',[100,100,1200,700]);hold on;
 
 
 % list of random sbj with replacement
@@ -114,23 +114,36 @@ for level=1:length(SNRlevel)
         end       
         snrRawTime(test,level) = mean(ySNR_time); 
         
+%         figure(f1);
+%         subplot(2,3,level);hold on;
+%         plot(squeeze(mean(Y(1:2,1,:),1))); % plot average 2 sbj
+%         plot(squeeze(mean(Y(1:8,1,:),1))); % plot average 8 sbj
+%         plot(squeeze(mean(Y(1:20,1,:),1))); % plot average 20 sbj
+%         plot(squeeze(mean(Y(1:50,1,:),1))); % plot average 50 sbj        
+%         legend('N=2','N=8','N=20','N=50')
+%         title(['SNR' num2str(SNRlevel(level))])
+%         figure(f2); 
+%         subplot(2,3,level);hold on;
+%         for iSub = 1:4
+%             plot(squeeze(Y(iSub,1,:))); % plot S1
+%         end
+%         title(['SNR' num2str(SNRlevel(level))])
+%         legend('S1','S2','S3','S4')
+            
         figure(f1);
-        subplot(2,3,level);hold on;
-        plot(squeeze(Y(1,1,:))); % plot S1
-        plot(squeeze(mean(Y(1:20,1,:),1))); % plot average 20 sbj
-        plot(squeeze(mean(Y(1:50,1,:),1))); % plot average 50 sbj        
-        legend('N=1','N=20','N=50')
-        title(['SNR' num2str(SNRlevel(level))])
-        figure(f2); 
-        subplot(2,3,level);hold on;
-        for iSub = 1:4
-            plot(squeeze(Y(iSub,1,:))); % plot S1
-        end
-        title(['SNR' num2str(SNRlevel(level))])
-        legend('S1','S2','S3','S4')
+        subplot(2,5,level);hold on;
+        plot(squeeze(Y(15,18,:))); 
+        plot(squeeze(Y(5,18,:))); 
+        plot(squeeze(Y(10,18,:))); 
+        legend('S2','S5','S10')
+        title(['SNR ' num2str(SNRlevel(level))])
+        subplot(2,5,level+5);hold on;
+        plot(squeeze(mean(Y(1:20,18,:),1)));
+        legend('average 20')
         
 end % SNR
-saveas(f1,['figures' filesep 'checkSNRt' num2str(test)],'png')
-saveas(f2,['figures' filesep 'checkSNRindT' num2str(test)],'png')
+% saveas(f1,['figures' filesep 'checkSNRt' num2str(test)],'png')
+% saveas(f2,['figures' filesep 'checkSNRindT' num2str(test)],'png')
+saveas(f1,['figures' filesep 'checkSNRmixT' num2str(test)],'png')
 end
 
