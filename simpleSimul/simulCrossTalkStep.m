@@ -151,7 +151,7 @@ for seedRoi = 1:numROIs
 end % different activated sources
 
 save('simulOutput/simulCrossTalk200.mat','crossTalkTemplate','crossTalkWhole',...
-    'crossTalkROI','crossTalkROIin','crossTalkTemplateBest');
+    'crossTalkROI','crossTalkROIin','crossTalkTemplateBest','listROIs');
 
 figure;
 subplot(2,3,1);

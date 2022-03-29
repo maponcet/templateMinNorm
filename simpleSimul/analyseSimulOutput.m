@@ -83,14 +83,6 @@ legend('left','right')
 saveas(gcf,'figures/betaErpSource','png')
 saveas(gcf,'figures/betaErpSource','fig')
 
-count = 1;
-yData = simulERP(repBoot,totSbj,level).data;
-yAvg = squeeze(mean(yData));
-figure;plotOnEgi(yAvg(:,50))
-figure;plotOnEgi(yAvg(:,120))
-figure;plotOnEgi(yAvg(:,180))
-
-
 currBeta = simulERP(repBoot,sbj,noise).srcERP;
 beta1 = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
 beta2 = squeeze(simulERP(repBoot,sbj,noise).beta(2,:,:));
@@ -111,6 +103,27 @@ for iRoi = 1:2:length(listROIs)
     plot(beta4(iRoi,:) / max(max(abs(beta4))) ,'LineWidth',2);ylim([-1 1]);
     count = count+1;
 end
+
+% %%% plot topo
+% addpath('/Users/marleneponcet/Documents/Git/svndl_code/alesToolbox')
+% yData = simulERP(repBoot,sbj,noise).data;
+% yAvg = squeeze(mean(yData));
+% figure;
+% subplot(3,3,1); plotOnEgi(yAvg(:,50))
+% subplot(3,3,2); plotOnEgi(yAvg(:,120))
+% subplot(3,3,3); plotOnEgi(yAvg(:,180))
+% currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
+% load('averageMap50Sum.mat')
+% tempY = avMap * currBeta;
+% subplot(3,3,4); plotOnEgi(tempY(:,50))
+% subplot(3,3,5); plotOnEgi(tempY(:,120))
+% subplot(3,3,6); plotOnEgi(tempY(:,180))
+% currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(4,:,:));
+% oracleY = avMap * currBeta;
+% subplot(3,3,7); plotOnEgi(oracleY(:,50))
+% subplot(3,3,8); plotOnEgi(oracleY(:,120))
+% subplot(3,3,9); plotOnEgi(oracleY(:,180))
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -622,3 +635,43 @@ end
 xlabel('log noise level');ylabel('source % (A/(A+C)')
 legend({'average','whole','ROI','Oracle','averageOracle'},'location','best');
 saveas(gcf,['figures' filesep 'testSNR%'],'png')
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% Cross Talk
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+load ('simulOutput/simulCrossTalk200.mat');
+figure;
+subplot(2,3,1);
+imagesc(squeeze(mean(crossTalkTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
+ylabel('seedArea');xlabel('predictArea')
+title('templateBased')
+subplot(2,3,2);imagesc(squeeze(mean(crossTalkWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+ylabel('seedArea');xlabel('predictArea')
+title('Whole gcv')
+subplot(2,3,3);imagesc(squeeze(mean(crossTalkROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+ylabel('seedArea');xlabel('predictArea')
+title('ROI gcv')
+subplot(2,3,4);imagesc(squeeze(mean(crossTalkROIin(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+ylabel('seedArea');xlabel('predictArea')
+title('Oracle')
+subplot(2,3,5);imagesc(squeeze(mean(crossTalkTemplateBest(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square
+set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
+set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
+ylabel('seedArea');xlabel('predictArea')
+title('template best reg param')
+subplot(2,3,6);colorbar
+colorcet('grey','reverse',1); % Gouldian reducedgrey heat L12 L18
+set(gcf,'position',[100,100,1500,1000])
+saveas(gcf,['figures' filesep 'crossTalkStepSNR200' 'grey'],'png')
