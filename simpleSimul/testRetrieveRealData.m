@@ -7,7 +7,7 @@ load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 nLambdaRidge = 50;
 lowPassNF1 = 1; % filter 1 or not 0
-numFq2keep = 5; % nb of harmonics to keep in the signal
+numFq2keep = 10; % nb of harmonics to keep in the signal
 
 %%%%%%
 %% LOAD AND FILTER THE EEG DATA (as specified) 
@@ -37,6 +37,8 @@ for iSub=1:numSubs
         nf1 = Axx.i1F1;
         axxIdx = (nf1:nf1:numFq2keep*nf1)+1; 
         dftIdx = (1:numFq2keep)+1; % dftIdx has 1 step per Hz whereas axxIdx is 0.5Hz 
+%         axxIdx = (nf1:nf1*2:numFq2keep*nf1)+1; 
+%         dftIdx = (1:2:numFq2keep)+1; % dftIdx has 1 step per Hz whereas axxIdx is 0.5Hz 
         dft = dftmtx(size(Axx.Wave,1)); 
         sinWaveforms = imag(dft);
         cosWaveforms = real(dft);

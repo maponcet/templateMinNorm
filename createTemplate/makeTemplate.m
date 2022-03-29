@@ -43,51 +43,115 @@ avMap = mean(roiMap,3);
 regParam = sqrt(sum(avMap.^2,1));
 avMapNorm = bsxfun(@rdivide,avMap,regParam);
 
-save(['templates' filesep 'averageMap' projectName '.mat'],'avMap','avMapNorm','listROIs')
+% save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels')
+
 
 % plot if layout available
 mm = round(max(max(abs(avMap))),-1);
 nn = round(max(max(abs(avMapNorm))),1);
 projectName = lower(projectName);
-if contains(projectName,'biosemi')
-    figure('position', [200, 0, 1500, 800])
-    colormap jet
+loc = [1:9;10:18]; loc = loc(:);
+if contains(projectName,'biosemi') 
+    figure('position', [200, 1000, 2000, 500])
     for roi=1:18
-        subplot(3,6,roi)
+        subplot(2,9,loc(roi))
         title(listROIs(roi))
-        plotTopo(avMap(:,roi),[projectName '.lay'])
+        plotTopo(avMap(:,roi),['layout/' projectName '.lay'])
         caxis([-mm mm])
-        % colorbar
+        colorcet('D1') 
     end
-    saveas(gcf,['figures/averageMap' projectName],'png')
-    figure('position', [200, 0, 1500, 800])
-    colormap jet
+    saveas(gcf,['figures/averageMap' projectName 'plotTopo'],'png')
+    figure('position', [200, 1000, 2000, 500])
     for roi=1:18
-        subplot(3,6,roi)
+        subplot(2,9,loc(roi))
         title(listROIs(roi))
-        plotTopo(avMapNorm(:,roi),[projectName '.lay'])
+        plotTopo(avMapNorm(:,roi),['layout/' projectName '.lay'])
         caxis([-nn nn])
-        % colorbar
+        colorcet('D1') 
     end
     saveas(gcf,['figures/averageMapNorm' projectName],'png')
-elseif strcmp(projectName,'egi256') ||  strcmp(projectName,'egi128') 
-    figure('position', [200, 0, 1500, 800])
+    
+%%%%%%
+elseif contains(projectName,'egi')
+    nbChan = sscanf(projectName,'egi%d');
+    figure('position', [200, 1000, 2000, 500])
     for roi=1:18
-        subplot(3,6,roi)
-        title(listROIs(roi))
-        plotOnEgi(avMap(:,roi)) % only for 256 & 128 electrodes
-        caxis([-mm mm])
+        subplot(2,9,loc(roi))
+        plotTopo(avMap(:,roi),['layout/GSN-HydroCel-' num2str(nbChan) '.sfp']);
+        caxis([-mm mm]);title(listROIs(roi));
+        colorcet('D1') 
+    end
+    saveas(gcf,['figures/averageMap' projectName 'plotTopo'],'png')
+    figure('position', [200, 1000, 2000, 500])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        topoplot(avMap(:,roi),['layout/GSN-HydroCel-' num2str(nbChan) '.sfp'],'colormap',colorcet('D1'),'electrodes','on' );
+        caxis([-mm mm]);title(listROIs(roi));
+    end
+    saveas(gcf,['figures/averageMap' projectName 'EEGlab'],'png')
+    
+    if nbChan > 64 
+        figure('position', [200, 1000, 2000, 500])
+        for roi=1:18
+            subplot(2,9,loc(roi))
+            title(listROIs(roi))
+            plotOnEgi(avMap(:,roi)) % only for 256 & 128 electrodes
+            caxis([-mm mm])
+            colorcet('D1') 
+        end
+        saveas(gcf,['figures/averageMap' projectName 'plotOnEgi'],'png')
+        
+        figure('position', [200, 1000, 2000, 500])
+        for roi=1:18
+            subplot(2,9,loc(roi))
+            title(listROIs(roi))
+            plotOnEgi(avMapNorm(:,roi)) % only for 256 & 128 electrodes
+            caxis([-nn nn])
+            colorcet('D1') 
+        end
+        saveas(gcf,['figures/averageMapNorm' projectName],'png')
+    end
+    
+%%%%%%%%%     
+elseif strcmp(projectName,'standard_1005')
+    figure('position', [200, 1000, 2000, 500])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        plotTopo(avMap(:,roi),'Standard-10-5-Cap385.sfp');
+        caxis([-mm mm]);title(listROIs(roi));
+        colorcet('D1') 
     end
     saveas(gcf,['figures/averageMap' projectName],'png')
-    figure('position', [200, 0, 1500, 800])
+    figure('position', [200, 1000, 2000, 500])
     for roi=1:18
-        subplot(3,6,roi)
-        title(listROIs(roi))
-        plotOnEgi(avMapNorm(:,roi)) % only for 256 & 128 electrodes
-        caxis([-nn nn])
+        subplot(2,9,loc(roi))
+        topoplot(avMap(:,roi),'Standard-10-5-Cap385.sfp','colormap',colorcet('D1'),'electrodes','on' );
+        caxis([-mm mm]);title(listROIs(roi))
     end
-    saveas(gcf,['figures/averageMapNorm' projectName],'png')
+    saveas(gcf,['figures/averageMap' projectName 'EEGlab'],'png')
+    figure('position', [200, 1000, 2000, 500])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        topoplot(avMap(:,roi),'Standard-10-5-Cap385.sfp','colormap',colorcet('D1'),'electrodes','off' );
+        caxis([-mm mm]);title(listROIs(roi));
+    end
+    saveas(gcf,['figures/averageMap' projectName 'EEGlabNoElec'],'png')
 end
 
 
 
+% % fieldtrip layout gets error.. :/
+% dirlist  = dir('fieldtrip/*.*');
+% filename = {dirlist(~[dirlist.isdir]).name}';
+% cfg = [];
+% cfg.layout = 'fieldtrip/biosemi64.lay';
+% layout = ft_prepare_layout(cfg);
+% figure; ft_plot_topo(cfg,avMap(:,roi));
+% figure; ft_topoplotER(cfg,abs(avMap(:,roi)));
+% ft_layoutplot(layout);
+
+%  cfg.layout = 'EEG1005_modif.lay';
+%  ft_prepare_layout(cfg);
+%  figure
+%  ft_layoutplot(cfg);
+% figure; plotTopo(avMap(4:end-7,1),'EEG1005_modif.lay');

@@ -1,8 +1,10 @@
 % create average activity map from the forward .mat files from the 25 sbj
 % in the PlosOne paper + the 50 total sbj (average ROI locations)
+% Plot individual ROIs
 
 % addpath('/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/requiredFunctions/');
 addpath(genpath('/Users/marleneponcet/Documents/Git/svndl_code/'));
+addpath(genpath('/Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork'));
 % setpref('mrLASSO','scalpFileDir','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/anatomy');
 
 
@@ -86,16 +88,19 @@ end
 % average the roiMap accross sbj
 % avMap.activity = mean(roiMap,3);
 avMap = mean(roiMapSum,3);
-figure('position', [200, 0, 1500, 800])
-for roi=1:18
-    subplot(3,6,roi)
+figure; pict = 1;
+for roi=2:2:18
+    subplot(1,9,pict)
     title(listROIs(roi))
-    plotContourOnScalp(avMap(:,roi),'skeri0044','/Volumes/Amrutam/Marlene/JUSTIN/PlosOne/github-archive/datafiles/eegdata/')
+    plotContourOnScalp(avMap(:,roi),'skeri0044','/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
     view(20,35)
     camproj('perspective')
     axis off
+    pict = pict+1;
 end
-saveas(gcf,'averageMap50','png')
+set(gcf,'position', [200, 0, 2000, 300])
+saveas(gcf,'averageMap50_3Dturn','png')
+
 save('averageMap50Sum.mat','avMap','listROIs')
 avMap= mean(roiMapMean,3);
 save('averageMap50Mean.mat','avMap','listROIs')
@@ -187,6 +192,64 @@ for rr=1:length(pickROI)
     saveas(gcf,['indROI/unscale' listROIs{pickROI(rr)} '_S26-50'],'png')
 end
 
+% plot different representative response
+pickROI = 2; pickInd = [2 30 19];
+minScale = min(min(roiMapSum(:,pickROI,pickInd)));
+maxScale = max(max(roiMapSum(:,pickROI,pickInd)));
+scale = max([abs(minScale) abs(maxScale)]);
+figure;
+for ff=1:3
+    subplot(2,3,ff);
+    plotOnEgi(roiMapSum(:,pickROI,pickInd(ff)))
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+end
+pickROI = 18; pickInd = [46 45 4];
+minScale = min(min(roiMapSum(:,pickROI,:)));
+maxScale = max(max(roiMapSum(:,pickROI,:)));
+scale = max([abs(minScale) abs(maxScale)]);
+for ff=4:6
+    subplot(2,3,ff);
+    plotOnEgi(roiMapSum(:,pickROI,pickInd(ff-3)))
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+end
+set(gcf,'position',[100,100,1000,600])
+saveas(gcf,'indROI/representative','png')
+
+% for bilateral activation
+figure;set(gcf,'position',[100,100,1200,800])
+pickInd = [46 45 4];
+pickROI = [1 2 1 2; 17 18 17 18; 1 2 17 18 ] ;
+for tt = 1:size(pickROI,1)
+    minScale = min(min(sum(roiMapSum(:,pickROI(tt,:),pickInd),2)));
+    maxScale = max(max(sum(roiMapSum(:,pickROI(tt,:),pickInd),2)));
+    scale = max([abs(minScale) abs(maxScale)]);
+    for ff=1:3
+        subplot(3,3,tt+3*(ff-1));
+        plotOnEgi(sum(roiMapSum(:,pickROI(tt,:),pickInd(ff)),2))
+        caxis([-scale scale]);
+    end
+end
+saveas(gcf,'indROI/bilat3sbj','png')
+figure;set(gcf,'position',[100,100,300,300])
+data = mean(sum(roiMapSum(:,pickROI(tt,:),1:20),2),3);
+plotOnEgi(data); caxis([-max(abs(data)) max(abs(data))]);
+saveas(gcf,'indROI/bilatAverage','png')
+    
+figure;set(gcf,'position',[100,100,1000,800])
+pickROI = [1 2; 15 16; 17 18] ;pickInd=1;
+for tt = 1:size(pickROI,1)
+    minScale = min(min(sum(roiMapSum(:,pickROI(tt,:),pickInd),2)));
+    maxScale = max(max(sum(roiMapSum(:,pickROI(tt,:),pickInd),2)));
+    scale = max([abs(minScale) abs(maxScale)]);
+    subplot(3,1,tt);
+    plotOnEgi(sum(roiMapSum(:,pickROI(tt,:),pickInd),2))
+    caxis([-scale scale]);
+end
+saveas(gcf,'indROI/bilatS1','png')
+
+
 
 % plot variability in amplitude
 for rr=1:size(roiMapSum,2)
@@ -205,3 +268,5 @@ line(1:50,repmat(mean(minAmp(rr,:))+ 3*std(minAmp(rr,:)),1,50),'Color','b')
 line(1:50,repmat(mean(maxAmp(rr,:))- 3*std(maxAmp(rr,:)),1,50),'Color','r')
 line(1:50,repmat(mean(maxAmp(rr,:))+ 3*std(maxAmp(rr,:)),1,50),'Color','r')
 end
+
+

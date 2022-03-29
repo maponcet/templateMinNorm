@@ -3,7 +3,8 @@ function makeFwd(projectName)
 % from the Axx_c001.fif files (creates skeri0001-fwd.fif, -sph-fwd)
 % e.g. makeFwd('Biosemi128')
 
-% need addpath fieldtrip-aleslab-fork/external/mne  + genpath svndl_code??? 
+% need addpath fieldtrip-aleslab-fork/external/mne 
+% addpath(genpath('/Users/marleneponcet/Documents/Git/svndl_code/'))
 
 % create the forward models
 if ~exist(['/Users/marleneponcet/Documents/data/skeriDATA/skeri' projectName],'dir')

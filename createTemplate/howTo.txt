@@ -1,5 +1,7 @@
 HOW TO create a template
 
+0. copy original skeri folder (same path) and rename with skeriMontageName
+
 1. run alignToMrcElec(EEGsystem) - e.g. alignToMrcElec('EGI128') 
 this function calls readElecLocs.m which needs to include the info abt
 the electrode locations for that system. 

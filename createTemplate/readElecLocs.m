@@ -1,11 +1,22 @@
 function [fifIdx, elecIdx, elecCoord] = readElecLocs(eegSystem)
 
 fifIdx = [ 22 9 11 33 24 36 45 52 58 62 70 75 83 92 96 108 104 124 122];
+% matching electrodes between systems
+matchElec = {'Fp1' 'Fp2' 'Fz' 'F7' 'F3' 'C3' 'T7' 'P3' 'P7' 'Pz' 'O1' 'Oz' 'O2' 'P4' 'P8' 'T8' 'C4' 'F4' 'F8'};
         
 switch eegSystem
+     
+    case 'Standard_1005' 
+        addpath (genpath('/Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork/'))
+        A = ft_read_sens('EEG systems/standard/standard_1005.elc');
+        elecCoord = A.elecpos;
+        elecIdx = zeros(length(matchElec),1);
+        for mm = 1:length(matchElec)
+            elecIdx(mm) = find(strcmp(A.label,matchElec(mm)));
+        end
         
-      case 'EGI32' 
-        elecIdx= [1 2 17 11 3 5 13 7 17 19 9 20 10 8 16 14 6 4 12]; 
+    case 'EGI32' 
+        elecIdx= [1 2 17 11 3 5 13 7 17 19 9 20 10 8 16 14 6 4 12];        
         
         fid = fopen('EEG systems/EGI/AdultAverageNet32_v1.sfp');
         A = textscan(fid,'%*s %f %f %f'); % skip 1st column of names
