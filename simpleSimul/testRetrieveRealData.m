@@ -68,7 +68,7 @@ for iSub=1:numSubs
 end
 
 
-%%%%%% "ICA"
+%%%%%% "PCA"
 tempY = permute(Y,[2 1 3]);
 stackY = reshape(tempY,[size(Y,2)*numSubs,size(Y,3)]);
 stackY = bsxfun(@minus,stackY, mean(stackY));
@@ -76,7 +76,7 @@ stackY = bsxfun(@minus,stackY, mean(stackY));
 numComponents = 5;
 Ylo = u1(:,1:numComponents)*s1(1:numComponents,1:numComponents)*v1(:, 1:numComponents)';
 Y2 = reshape(Ylo,[size(Y,2),numSubs,size(Y,3)]);
-Yica = permute(Y2,[2 1 3]);
+Ypca = permute(Y2,[2 1 3]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,19 +117,20 @@ saveas(gcf,['figures/newPlos' num2str(numFq2keep)],'png')
 
 % min_norm on average data: get beta values for each ROI over time
 [betaAverage2, lambda2] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
-[betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Yica,1)));
+[betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Ypca,1)));
 
-regionWhole = zeros(numROIs,length(Yica),numSubs);
-regionROI = zeros(numROIs,length(Yica),numSubs);
+regionWhole = zeros(numROIs,length(Ypca),numSubs);
+regionROI = zeros(numROIs,length(Ypca),numSubs);
 % regionROILC = regionWhole;
 % regionWholeLC= regionWhole;
 betaROIin= regionWhole;
 % betaROIinLC= regionWhole;
 
+% compared with stack data, lambda is different for each participant
 for iSub=1:numSubs
     % regular minimum_norm: on the 20484 indexes per sbj
-    [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Yica(iSub,:,:)), nLambdaRidge);
-    [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Yica(iSub,:,:)), nLambdaRidge);
+    [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Ypca(iSub,:,:)), nLambdaRidge);
+    [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Ypca(iSub,:,:)), nLambdaRidge);
     
     [betaWholeLC,lambdaWholeLC] = minNormFast_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
     [betaROILC, lambdaROILC] = minNormFast_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));    
@@ -329,3 +330,4 @@ saveas(gcf,['figures/realTestMeanICAnorm'],'png')
 
 regParam = sqrt(sum(betaSumICA.^2,2));
 betaSumICA_2 = bsxfun(@rdivide,betaSumICA,regParam);
+

@@ -6,7 +6,7 @@ load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 nLambdaRidge = 50;
 lowPassNF1 = 1; % filter 1 or not 0
-numFq2keep = 1; % nb of harmonics to keep in the signal
+numFq2keep = 5; % nb of harmonics to keep in the signal
 
 %%%%%%
 %% LOAD AND FILTER THE EEG DATA (as specified) 
@@ -53,35 +53,23 @@ for iSub=1:numSubs
     Y(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
 end
 
+%%%%%% "PCA"
+tempY = permute(Y,[2 1 3]);
+stackY = reshape(tempY,[size(Y,2)*numSubs,size(Y,3)]);
+stackY = bsxfun(@minus,stackY, mean(stackY));
+[u1, s1, v1] = svd(stackY);
+numComponents = 5;
+Ylo = u1(:,1:numComponents)*s1(1:numComponents,1:numComponents)*v1(:, 1:numComponents)';
+Y2 = reshape(Ylo,[size(Y,2),numSubs,size(Y,3)]);
+Ypca = permute(Y2,[2 1 3]);
+
 
 %% compute minimum norm
 
 % min_norm on average data: get beta values for each ROI over time
 [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y,1)));
+[betaAveragePCA, lambdaPCA] = minNormFast_lcurve(avMap, squeeze(mean(Ypca,1)));
 
-regionWhole = zeros(numROIs,length(Y),numSubs);
-regionROI = zeros(numROIs,length(Y),numSubs);
-for iSub=1:numSubs
-    % regular minimum_norm: on the 20484 indexes per sbj
-    [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Y(iSub,:,:)), nLambdaRidge);
-    [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Y(iSub,:,:)), nLambdaRidge);
-     
-    % beta values are for the indexes, but I want it per ROI
-    % get the number of indexes per ROI for this subj
-    rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
-    % get the range
-    range = [0 cumsum(rangeROI)]; % cumulative sum of elements
-    regionROI(:,:,iSub) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    regionROIMean(:,:,iSub) = cell2mat(arrayfun(@(x) mean(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-    % need to find the indexes for whole brain -> use idxROIfwd
-    regionWhole(:,:,iSub) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-    regionWholeMean(:,:,iSub) = cell2mat(arrayfun(@(x) mean(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-end
-% average across subj
-retrieveWhole = mean(regionWhole,3);
-retrieveROI = mean(regionROI,3);     
-retrieveWholeMean = mean(regionWholeMean,3);
-retrieveROIMean = mean(regionROIMean,3);  
 
 %% Plots 
 count = 1;
@@ -102,72 +90,26 @@ figure;set(gcf,'position',[100,100,800,1000])
 for iRoi = 1:2:numROIs
     % need to normalise the signal
     subplot(3,3,count);hold on
-    plot(t, retrieveROI(iRoi,:) / max(max(abs(retrieveROI))) ,'LineWidth',2);
-    plot(t, retrieveROI(iRoi+1,:) / max(max(abs(retrieveROI))) ,'LineWidth',2);
+    plot(t, betaAveragePCA(iRoi,:) / max(max(abs(betaAveragePCA))) ,'LineWidth',2);
+    plot(t, betaAveragePCA(iRoi+1,:) / max(abs(betaAveragePCA(:))) ,'LineWidth',2);
     line(t, zeros(size(t)),'Color','k')
     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
     ylim([-1 1]);count=count+1;
 end
-saveas(gcf,['figures/realROI' num2str(numFq2keep)],'png')
-
-count = 1;
-figure;set(gcf,'position',[100,100,800,1000])
-for iRoi = 1:2:numROIs
-    % need to normalise the signal
-    subplot(3,3,count);hold on
-    plot(t, retrieveWhole(iRoi,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2);
-    plot(t, retrieveWhole(iRoi+1,:) / max(max(abs(retrieveWhole))) ,'LineWidth',2);
-    line(t, zeros(size(t)),'Color','k')
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-    ylim([-1 1]);count=count+1;
-end
-saveas(gcf,['figures/realWhole' num2str(numFq2keep)],'png')
-
-count = 1;
-figure;set(gcf,'position',[100,100,800,1000])
-for iRoi = 1:2:numROIs
-    % need to normalise the signal
-    subplot(3,3,count);hold on
-    plot(t, retrieveROIMean(iRoi,:) / max(abs(retrieveROIMean(:))) ,'LineWidth',2);
-    plot(t, retrieveROIMean(iRoi+1,:) / max(abs(retrieveROIMean(:))) ,'LineWidth',2);
-    line(t, zeros(size(t)),'Color','k')
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-    ylim([-1 1]);count=count+1;
-end
-saveas(gcf,['figures/realROIMean' num2str(numFq2keep)],'png')
-
-count = 1;
-figure;set(gcf,'position',[100,100,800,1000])
-for iRoi = 1:2:numROIs
-    % need to normalise the signal
-    subplot(3,3,count);hold on
-    plot(t, retrieveWholeMean(iRoi,:) / max(abs(retrieveWholeMean(:))) ,'LineWidth',2);
-    plot(t, retrieveWholeMean(iRoi+1,:) / max(abs(retrieveWholeMean(:))) ,'LineWidth',2);
-    line(t, zeros(size(t)),'Color','k')
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-    ylim([-1 1]);count=count+1;
-end
-saveas(gcf,['figures/realWholeMean' num2str(numFq2keep)],'png')
-
-
-
+saveas(gcf,['figures/realTemplatePCA' num2str(numFq2keep)],'png')
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%% PlosOne procedure (be aware that minNormFast as a scalingCoef so
-%%%%%%%%%% won't get the exact same betas)
+%%%%%%%%%% PlosOne procedure 
 stackedForwards=[];
 for iSub=1:numSubs
     stackedForwards = blkdiag(stackedForwards, [roiFwd{iSub,:}]);
 end
 stackedForwards = bsxfun(@minus,stackedForwards, mean(stackedForwards));
-tempY = permute(Y,[2 1 3]);
-stackY = reshape(tempY,[size(Y,2)*numSubs,size(Y,3)]);
-stackY = bsxfun(@minus,stackY, mean(stackY));
-[betaPlos,lambdaPlos] = minNormFast(stackedForwards,stackY,nLambdaRidge);
+[betaPlos,lambdaPlos] = minNormFast(stackedForwards,Ylo,50);
 
 prevRange = 0; % for counting from prev sbj
 for iSub=1:numSubs
@@ -188,9 +130,10 @@ for iRoi = 1:2:numROIs
     subplot(3,3,count);hold on
     plot(t, retrievePlosMean(iRoi,:) / max(max(abs(retrievePlosMean))) ,'LineWidth',2);
     plot(t, retrievePlosMean(iRoi+1,:) / max(max(abs(retrievePlosMean))) ,'LineWidth',2);
-    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
     line(t, zeros(size(t)),'Color','k')
+    tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
     ylim([-1 1]);count=count+1;
 end
 saveas(gcf,['figures/newPlos' num2str(numFq2keep)],'png')
+
 
