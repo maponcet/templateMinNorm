@@ -1,6 +1,8 @@
 clearvars;close all;
 % Compare stack vs ind then average
 % random 2 pairs of areas active (in both hemispheres, total=4sources)
+% stack means that same lambda across sbj vs ind means different lambda for
+% each sbj
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';

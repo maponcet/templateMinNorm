@@ -1,3 +1,5 @@
+% Need MNE matlab toolbox in the path 
+addpath('/Users/marleneponcet/Documents/Git/svndl_code/alesToolbox/')
 
 names = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/forward*');
 for i=1:length(names)
