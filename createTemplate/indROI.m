@@ -1,11 +1,14 @@
 % plot different representative response
 % using 256 electrodes and other plotting functions
+% Use forward matrices from specified folder (can be any montage as long as
+% the electrode layout matches)
 
 clearvars
 listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI256/*.mat');
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
+elecLayout = 'layout/GSN-HydroCel-256.sfp'; % 'layout/biosemi256.lay'
 roiMap=[];aa=0;
 roiMapMean=[];roiMapSum=[];
 for ff=1:length(listFiles)
@@ -33,7 +36,7 @@ scale = max([abs(minScale) abs(maxScale)]);
 figure;
 for ff=1:3
     subplot(2,3,ff);
-    plotTopo(roiMapSum(:,pickROI,pickInd(ff)),'layout/GSN-HydroCel-256.sfp')
+    plotTopo(roiMapSum(:,pickROI,pickInd(ff)),elecLayout)
     caxis([-scale scale]);
     title(listROIs{pickROI})
     colorcet('D1')
@@ -44,7 +47,7 @@ maxScale = max(max(roiMapSum(:,pickROI,:)));
 scale = max([abs(minScale) abs(maxScale)]);
 for ff=4:6
     subplot(2,3,ff);
-    plotTopo(roiMapSum(:,pickROI,pickInd(ff-3)),'layout/GSN-HydroCel-256.sfp')
+    plotTopo(roiMapSum(:,pickROI,pickInd(ff-3)),elecLayout)
     caxis([-scale scale]);
     title(listROIs{pickROI})
     colorcet('D1')
@@ -60,7 +63,7 @@ scale = max([abs(minScale) abs(maxScale)]);
 figure;
 for ff=1:3
     subplot(2,3,ff);
-    topoplot(roiMapSum(:,pickROI,pickInd(ff)),'layout/GSN-HydroCel-256.sfp','colormap',colorcet('D1'),'electrodes','on' )
+    topoplot(roiMapSum(:,pickROI,pickInd(ff)),elecLayout,'colormap',colorcet('D1'),'electrodes','on' )
     caxis([-scale scale]);
     title(listROIs{pickROI})
     colorcet('D1')
@@ -71,7 +74,7 @@ maxScale = max(max(roiMapSum(:,pickROI,:)));
 scale = max([abs(minScale) abs(maxScale)]);
 for ff=4:6
     subplot(2,3,ff);
-    topoplot(roiMapSum(:,pickROI,pickInd(ff-3)),'layout/GSN-HydroCel-256.sfp','colormap',colorcet('D1'),'electrodes','on' )
+    topoplot(roiMapSum(:,pickROI,pickInd(ff-3)),elecLayout,'colormap',colorcet('D1'),'electrodes','on' )
     caxis([-scale scale]);
     title(listROIs{pickROI})
     colorcet('D1')
@@ -91,7 +94,7 @@ for tt = 1:size(pickROI,1)
     scale = max([abs(minScale) abs(maxScale)]);
     for ff=1:3
         subplot(3,3,tt+3*(ff-1));
-        plotTopo(sum(roiMapSum(:,pickROI(tt,:),pickInd(ff)),2),'layout/GSN-HydroCel-256.sfp')
+        plotTopo(sum(roiMapSum(:,pickROI(tt,:),pickInd(ff)),2),elecLayout)
         caxis([-scale scale]);
         colorcet('D1')
     end
@@ -100,7 +103,7 @@ saveas(gcf,'indROI/bilat3sbj_256','png')
 
 figure;set(gcf,'position',[100,100,300,300])
 data = mean(sum(roiMapSum(:,pickROI(tt,:),1:20),2),3);
-plotTopo(data,'layout/GSN-HydroCel-256.sfp'); caxis([-max(abs(data)) max(abs(data))]);colorcet('D1')
+plotTopo(data,elecLayout); caxis([-max(abs(data)) max(abs(data))]);colorcet('D1')
 saveas(gcf,'indROI/bilatAverage_256','png')
     
 figure;set(gcf,'position',[100,100,1000,800])
@@ -110,7 +113,7 @@ for tt = 1:size(pickROI,1)
     maxScale = max(max(sum(roiMapSum(:,pickROI(tt,:),pickInd),2)));
     scale = max([abs(minScale) abs(maxScale)]);
     subplot(3,1,tt);
-    plotTopo(sum(roiMapSum(:,pickROI(tt,:),pickInd),2),'layout/GSN-HydroCel-256.sfp')
+    plotTopo(sum(roiMapSum(:,pickROI(tt,:),pickInd),2),elecLayout)
     caxis([-scale scale]);colorcet('D1');
 end
 saveas(gcf,'indROI/bilatS1_256','png')

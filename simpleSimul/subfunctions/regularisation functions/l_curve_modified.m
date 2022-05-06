@@ -1,4 +1,4 @@
-function [reg_corner,reg_param] = l_curve_modified(U,sm,b,method,L,V)
+function [reg_corner,rho_c,eta_c,reg_param] = l_curve_modified(U,sm,b,method,L,V)
 %L_CURVE Plot the L-curve and find its "corner".
 %
 % [reg_corner,rho,eta,reg_param] =
@@ -30,11 +30,9 @@ function [reg_corner,reg_param] = l_curve_modified(U,sm,b,method,L,V)
 % Comput. 14 (1993), pp. 1487-1503.
 
 % Per Christian Hansen, DTU Compute, October 27, 2010.
-% Modified to include time matrix + force min lambda to be 0.5 + use
-% l_corner_modified function
 
-% 2021 modified to save time: use l_corner_modified, no plot, don't return
-% rho,eta,reg_param (used for plot)
+% 2021 Modified to include time matrix + force min lambda to be 0.5
+% use l_corner_modified (discrete computation to find corner), no plot
 
 
 % Set defaults.
@@ -64,7 +62,7 @@ end
 xi = beta./s; %Note here Implicit BSX: Also holds for all other beta .* and ./ operations
 xi( isinf(xi) ) = 0;
 
-if (strncmp(method,'Tikh',4) | strncmp(method,'tikh',4))
+if (strncmp(method,'Tikh',4) || strncmp(method,'tikh',4))
 
   %beta = reshape(beta(1:p,:),size(beta(1:p,:),1)*size(beta(1:p,:),2),1);   % Allows to deal with several time points
     
@@ -81,10 +79,10 @@ if (strncmp(method,'Tikh',4) | strncmp(method,'tikh',4))
     rho(i) = norm((1-f).*beta);
   end
   
-  if (m > n & beta2 > 0), rho = sqrt(rho.^2 + beta2); end
+  if (m > n && beta2 > 0), rho = sqrt(rho.^2 + beta2); end
   marker = '-'; txt = 'Tikh.';
 
-elseif (strncmp(method,'tsvd',4) | strncmp(method,'tgsv',4))
+elseif (strncmp(method,'tsvd',4) || strncmp(method,'tgsv',4))
 
   eta = zeros(p,1); rho = eta;
   eta(1) = abs(xi(1))^2;
@@ -104,7 +102,7 @@ elseif (strncmp(method,'tsvd',4) | strncmp(method,'tgsv',4))
     U = U(:,1:p); txt = 'TGSVD';
   end
 
-elseif (strncmp(method,'dsvd',4) | strncmp(method,'dgsv',4))
+elseif (strncmp(method,'dsvd',4) || strncmp(method,'dgsv',4))
 
   eta = zeros(npoints,1); rho = eta; reg_param = eta;
   reg_param(npoints) = max([s(p),s(1)*smin_ratio]);
@@ -115,7 +113,7 @@ elseif (strncmp(method,'dsvd',4) | strncmp(method,'dgsv',4))
     eta(i) = norm(f.*xi);
     rho(i) = norm((1-f).*beta(1:p));
   end
-  if (m > n & beta2 > 0), rho = sqrt(rho.^2 + beta2); end
+  if (m > n && beta2 > 0), rho = sqrt(rho.^2 + beta2); end
   marker = ':';
   if (ps==1), txt = 'DSVD'; else txt = 'DGSVD'; end
 
@@ -137,7 +135,7 @@ elseif (strncmp(method,'mtsv',4))
       rho(i) = eps;
     end
   end
-  if (m > n & beta2 > 0), rho = sqrt(rho.^2 + beta2); end
+  if (m > n && beta2 > 0), rho = sqrt(rho.^2 + beta2); end
   reg_param = (n-p+1:n)'; txt = 'MTSVD';
   U = U(:,reg_param); sm = sm(reg_param);
   marker = 'x'; ps = 2;  % General form regularization.
@@ -148,18 +146,20 @@ end
 
 % Locate the "corner" of the L-curve, if required.
 if (locate)
-  [reg_corner] = l_corner_modified(rho,eta,reg_param,U,sm,b,method);
+  [reg_corner,rho_c,eta_c] = l_corner_modified(rho,eta,reg_param,U,sm,b,method);
 end
 
-% % Make plot.
-% figure;
-% plot_lc(rho,eta,marker,ps,reg_param);
-% if locate
-%   ax = axis;
-%   HoldState = ishold; hold on;
-%   loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
-%          [rho_c,rho_c],[min(eta)/100,eta_c],':r')
-%   title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
-%   axis(ax)
-%   if (~HoldState), hold off; end
+% % Make plot when regularisation seems incorrect (extrem values)
+% if sum(reg_corner>reg_param) < 3 || sum(reg_corner<reg_param)<3 || eta_c > 300
+%     figure;
+%     plot_lc(rho,eta,marker,ps,reg_param);
+%     if locate
+%         ax = axis;
+%         HoldState = ishold; hold on;
+%         loglog([min(rho)/100,rho_c],[eta_c,eta_c],':r',...
+%             [rho_c,rho_c],[min(eta)/100,eta_c],':r')
+%         title(['L-curve, ',txt,' corner at ',num2str(reg_corner)]);
+%         axis(ax)
+%         if (~HoldState), hold off; end
+%     end
 % end

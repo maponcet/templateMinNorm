@@ -43,7 +43,10 @@ avMap = mean(roiMap,3);
 regParam = sqrt(sum(avMap.^2,1));
 avMapNorm = bsxfun(@rdivide,avMap,regParam);
 
-% save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels')
+elecDef = ft_read_sens('EEG systems/standard/standard_1005.elc');
+elecDef2 = ft_read_sens('EEG systems/standard/standard_1020.elc');
+
+save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels','elecDef')
 
 
 % plot if layout available
@@ -117,7 +120,7 @@ elseif strcmp(projectName,'standard_1005')
     figure('position', [200, 1000, 2000, 500])
     for roi=1:18
         subplot(2,9,loc(roi))
-        plotTopo(avMap(:,roi),'Standard-10-5-Cap385.sfp');
+        plotTopo(avMap(:,roi),'layout/Standard-10-5-Cap385.sfp');
         caxis([-mm mm]);title(listROIs(roi));
         colorcet('D1') 
     end
@@ -125,7 +128,9 @@ elseif strcmp(projectName,'standard_1005')
     figure('position', [200, 1000, 2000, 500])
     for roi=1:18
         subplot(2,9,loc(roi))
-        topoplot(avMap(:,roi),'Standard-10-5-Cap385.sfp','colormap',colorcet('D1'),'electrodes','on' );
+        % although same file for the layout, topoplot use readlocs from
+        % EEGlab and converts EGI Cartesian coordinates to Matlab/EEGLAB xyz coordinates.
+        topoplot(avMap(:,roi),'layout/Standard-10-5-Cap385.sfp','colormap',colorcet('D1'),'electrodes','on' );
         caxis([-mm mm]);title(listROIs(roi))
     end
     saveas(gcf,['figures/averageMap' projectName 'EEGlab'],'png')

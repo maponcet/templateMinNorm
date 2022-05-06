@@ -27,9 +27,9 @@ function [reg_c,rho_c,eta_c] = l_corner_modified(rho,eta,reg_param,U,s,b,method,
 % the corner should be found.
 
 % Per Christian Hansen, DTU Compute, January 31, 2015.
-% modified to account for time + use curvature function instead of lcfun
 
-% 2021 modified to save time: don't compute reg_c_cur and no plot
+% 2021 modified to account for time + use curvature function (discrete) 
+% instead of lcfun + don't compute reg_c_cur and no plot
 
 % Ensure that rho and eta are column vectors.
 rho = rho(:); eta = eta(:);

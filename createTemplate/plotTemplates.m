@@ -5,7 +5,9 @@ listTemplates = dir('templates/template*');
 
 %%% 3D only right hemisphere (works only for EGI128)
 load([listTemplates(5).folder '/' listTemplates(5).name])
+addpath('/Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated');
 addpath(genpath('/Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork'));
+addpath(genpath('/Users/marleneponcet/Documents/Git/templateMinNorm/simpleSimul/subfunctions'));
 figure; pict = 1;
 for roi=2:2:18
     subplot(1,9,pict)
@@ -18,8 +20,9 @@ for roi=2:2:18
     pict = pict+1;
 end
 set(gcf,'position', [200, 0, 2000, 300])
-saveas(gcf,'averageMap50_3Dturn','png')
-
+saveas(gcf,'figures/averageMap50_3Dturn','png')
+% saveas(gcf,'figures/averageMap50_3Dturn','fig')
+% print('figures/averageMap50_3Dturn','-depsc')
 
 %%% 2D
 % location ROI for subplot
@@ -41,7 +44,9 @@ for tt=1:length(listTemplates)
             colorcet('D1')
         end
         saveas(gcf,['figures/averageMap' ttName 'plotTopo'],'png')
-        
+        saveas(gcf,['figures/averageMap' ttName 'plotTopo'],'fig')
+        print(['figures/averageMap' ttName 'plotTopo'],'-depsc')
+
         %%%%%%
     elseif contains(ttName,'EGI')
         nbChan = sscanf(ttName,'EGI%d');
