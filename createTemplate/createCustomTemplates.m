@@ -3,7 +3,8 @@ function customTemplates = createCustomTemplates(channelInfo,varargin)
 % which the dataset was recorded
 % Plot the topographies of the customTemplates for each ROI to check that
 % they are similar to what is in the paper. Done automatically for EEGlab
-% input data.
+% input data. If it does not seem right, check the coordinate system of
+% your data (see below for details)
 % usage EEGlab: customTemplates = createCustomTemplates(EEG.chanlocs)
 % usage Fieldtrip: customTemplates = createCustomTemplates(cfg.elec)
 
@@ -63,6 +64,8 @@ function customTemplates = createCustomTemplates(channelInfo,varargin)
 % template assumed to be in the same directory, if it cannot be found, user 
 % is prompted to pick the directory manually
 
+% could potentially use alignFiducials.m to align the coordinates
+% automatically
 
 if length(channelInfo) == 1 % not eeglab
     eeglabUser = 0; coordsys = 'RAS';chanLabelsData = channelInfo.label;
@@ -96,16 +99,13 @@ listLabels = {'Fp1' 'Fp2' 'Fz' 'F7' 'F3' 'C3' 'T7' 'P3' 'P7' 'Pz' 'O1' 'Oz' ...
 
 % get chan indexes that match between the listLabels and the data
 matchIndex = arrayfun(@(x) cellfind(chanLabelsData,listLabels{x}),1:length(listLabels),'uni',false);
-nbMatch = sum(~cellfun('isempty', matchIndex)); % find nb of matching labels
+matchIndex = cell2mat(matchIndex(~cellfun('isempty', matchIndex))); % keep only non-empty indexes
 
-if nbMatch>7
-    matchIndex = cell2mat(matchIndex); % convert cell to matrix
-    listLabelMatch = chanLabelsData(matchIndex);
-else
-    % if data does not contain channel labels
-    % ask user to enter a set of channel labels with their corresponding
-    % indexes from standard 10-20
-    while nbMatch < 8
+% if data does not contain channel labels
+% ask user to enter a set of channel labels with their corresponding
+% indexes from standard 10-20
+if length(matchIndex)<8
+    while length(matchIndex) < 8
         prompt = ['Could not find matching channels. Enter at least 8 channel ' ...
             'numbers from the list below in the SAME order, separated by space. '...
             'If a channel is not in your EEG montage write 0. '...
@@ -121,14 +121,13 @@ else
                 msgError = errordlg('Please enter valid channel number','Input error','modal');
                 uiwait(msgError);
             else
-                listLabelMatch = listLabels(matchIndex>0);
                 matchIndex = matchIndex(matchIndex>0);
-                nbMatch = sum(matchIndex>0);
             end
         end
     end
 end
-
+% list of the labels to match
+listLabelMatch = chanLabelsData(matchIndex);
 
 % reference of the EEG montage
 if isempty(refIndex) 
@@ -146,7 +145,7 @@ while length(refIndex)~=1 || ~ismember(refIndex,0:length(chanLabelsData)) % incl
     refIndex = str2num(answer{1});
 end
     
-% load templates
+% load templates (including elecDef)
 templateFile = ['templates' filesep 'template_Standard_1005.mat'];
 templateDir = 1;
 while ~exist(templateFile) && templateDir~=0
@@ -175,34 +174,78 @@ else % fieldtrip
     end
 end
 
+
 % align the montages using the matching electrodes
-affineMtx = coordToMatch(matchIndex,:)' / elecDef.chanpos(matchIndexROI,:)' ;
-% Apply transform to all the template electrodes
-elecTrans = (affineMtx*elecDef.chanpos')';
+% Add dimension for "homogeneous coordinates"  for affine fitting.
+coordToMatch(:,4) = 1; 
+elecDef.chanpos(:,4) = 1; 
+% Affine:   templateLoc = customLoc * AffineMtx
+% affineMtx = templateLoc/customLoc
+affineMtx = elecDef.chanpos(matchIndexROI,:)' / coordToMatch(matchIndex,:)' ;
+% Apply transform to all the electrodes of the montage
+elecTrans = (affineMtx*coordToMatch')';
 
+
+%%% Scatter plot 
+% check that the new selected electrodes are close to the ones from the template
+cmap = hsv(length(matchIndex)); 
+figure;scatter3(elecTrans(matchIndex,1),elecTrans(matchIndex,2),elecTrans(matchIndex,3),[],cmap,'filled')
+hold on;scatter3(elecDef.chanpos(matchIndexROI,1),elecDef.chanpos(matchIndexROI,2),elecDef.chanpos(matchIndexROI,3),[],cmap)
+for nn=1:length(matchIndex)
+    text(elecTrans(matchIndex(nn),1),elecTrans(matchIndex(nn),2),elecTrans(matchIndex(nn),3),listLabelMatch{nn})
+end
+title('Checking alignment')
+
+
+%%%%%%% Best Match
 % Use knnsearch to find the best match between electrodes of the current 
-% montage and the templates.
-% returns electrode indexes (same length as nb of chan)
-bestElec = knnsearch(elecTrans,coordToMatch);
+% montage and the template
+% returns electrode indexes (same length as nb of chan) & distances
+[bestElec, euclideanDist] = knnsearch(elecDef.chanpos(:,1:3),elecTrans(:,1:3));
 
-% select only the best matching electrodes from the templates
+% create new custom template using the best matching electrodes
 matchedTemplate = avMap(bestElec,:); 
+
+figure; scatter3(elecDef.chanpos(bestElec,1),elecDef.chanpos(bestElec,2),elecDef.chanpos(bestElec,3),'filled')
+hold on; scatter3(elecTrans(:,1),elecTrans(:,2),elecTrans(:,3))
+title('Best matching electrodes')
+
+
+
+%%%%%% interpolate the electrodes (exponential weighted)
+% pairwise distance between each electrode locations of the current 
+% montage and the template   
+distances = pdist2(elecDef.chanpos(:,1:3),elecTrans(:,1:3),  'squaredeuclidean');
+% weight distances exponentially
+weightedDist = exp(-distances/(20^2));
+% normalize
+normDist = weightedDist ./ repmat(sum(weightedDist),length(weightedDist),1);
+% apply interpolation
+interpTemplate = (avMap' * normDist)'; 
+
+    
 
 % re-reference the templates
 if refIndex == 0
     % average reference: substract average across channels
     rerefTemplates = bsxfun(@minus,matchedTemplate, mean(matchedTemplate)); 
+    rerefTemplatesInterp = bsxfun(@minus,interpTemplate, mean(interpTemplate)); 
 else
     % substract the reference channel
     rerefTemplates = bsxfun(@minus,matchedTemplate, matchedTemplate(refIndex,:)); 
+    rerefTemplatesInterp = bsxfun(@minus,interpTemplate, interpTemplate(refIndex,:)); 
 end
 
+% output structure
 customTemplates.data = rerefTemplates;
-customTemplates.chanLabels = chanLabelsData;
+customTemplates.dataInterp = rerefTemplatesInterp;
+customTemplates.chanLabels = chanLabelsData';
 customTemplates.ROInames = listROIs';
 customTemplates.ref = refIndex;
-customTemplates.matchedLabels = chanLabels(bestElec)';
+customTemplates.matchedLabels = chanLabels(bestElec);
+customTemplates.matchDistances = euclideanDist; % in mm
 
+% plot optional topographies 
 if eeglabUser && plotMap == 1
     loc = [1:9;10:18]; loc = loc(:);
     mm = round(max(max(abs(customTemplates.data))),-1);
@@ -213,3 +256,5 @@ if eeglabUser && plotMap == 1
         caxis([-mm mm]);title(listROIs(roi));
     end
 end  
+
+    
