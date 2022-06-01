@@ -145,3 +145,45 @@ end
 
 save('simulOutput/simulSysV2V4.mat','simulSys','-v7.3')
 
+
+
+
+%%%%% compare systems V2V4
+clearvars; close all;
+load ('simulOutput/simulSysRand.mat')
+dirModel = '/Users/marleneponcet/Documents/Git/templateMinNorm/createTemplate/templates/';
+
+% get the variables from the data
+nbBootstrap = size(simulSys,1);
+noiseLevel = [simulSys(1,:,1).noise];
+nbSystem = size(simulSys,3);
+
+% do the loops
+for sys = 1:nbSystem
+    clear avMap
+    switch sys
+        case 1
+            load([dirModel 'template_EGI32.mat']);
+        case 2
+            load([dirModel 'template_EGI64.mat']);
+        case 3
+            load([dirModel 'template_EGI128.mat']);
+        case 4
+            load([dirModel 'template_EGI256.mat']);
+    end
+    for bb=1:nbBootstrap
+        fprintf('model%d bootstrap %d\n',sys,bb)
+        for noise = 1:length(noiseLevel)
+            simulData = simulSys(bb,noise,sys).data;
+            sourceData = simulSys(bb,noise,sys).srcERP;
+            [beta, betaCurv, betaBest, lambda, lambdaCurv, lambdaBest, ...
+                lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(simulData,1)),sourceData);
+            %             figure;imagesc(betaBest);figure;imagesc(betaCurv);figure;imagesc(beta)
+            simulSys(bb,noise,sys).beta(5,:,:) = betaBest;
+        end
+    end
+end
+
+save('simulOutput/simulSysRand.mat','simulSys','-v7.3')
+
+

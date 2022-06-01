@@ -3,8 +3,11 @@ clearvars;close all;
 
 addpath(genpath([pwd filesep 'subfunctions']))
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
+% load('/Users/marleneponcet/Documents/Git/templateMinNorm/createTemplate/customEGI128.mat')
+% avMap = customTemplates.data;
+% listROIs = customTemplates.ROInames;
 numROIs = length(listROIs);
-nLambdaRidge = 50;
+nLambdaRidge = 50; 
 lowPassNF1 = 1; % filter 1 or not 0
 numFq2keep = 5; % nb of harmonics to keep in the signal
 totBoot = 0; %500 or 0 for no bootstap
@@ -61,12 +64,14 @@ if totBoot>0
     betaAveragePCA = betaAverage;
     retrievePlos = betaAverage;
     retrievePlosMean = betaAverage;
+    retrieveWhole = betaAverage;
+    retrieveWholeMean = betaAverage;
     
     % bootstrap loop for 95% CI
     
     for bb=1:totBoot
-        clear region regionMean
-        
+        clear region regionMean regionWhole
+        if mod(bb,10)==0;fprintf('boot nb %d',bb);end
         pickN = randi(9,1,9);
         sampleY = Y(pickN,:,:);
         %%%%%% "PCA"
@@ -79,7 +84,7 @@ if totBoot>0
         Y2 = reshape(Ylo,[size(Y,2),numSubs,size(Y,3)]);
         Ypca = permute(Y2,[2 1 3]);
         
-        
+     
         %% compute minimum norm
         
         % min_norm on average data: get beta values for each ROI over time
@@ -87,12 +92,15 @@ if totBoot>0
         [betaAveragePCA(bb,:,:), lambdaPCA] = minNormFast_lcurve(avMap, squeeze(mean(Ypca,1)));
         
         %%%%%%%%%% PlosOne procedure
-        stackedForwards=[];
+        stackedFwd=[];stackedFullFwd = [];
         for iSub=pickN
-            stackedForwards = blkdiag(stackedForwards, [roiFwd{iSub,:}]);
+            stackedFwd = blkdiag(stackedFwd, [roiFwd{iSub,:}]);
+            stackedFullFwd = blkdiag(stackedFullFwd, [fullFwd{iSub}]);
         end
-        stackedForwards = bsxfun(@minus,stackedForwards, mean(stackedForwards));
-        [betaPlos,lambdaPlos] = minNormFast(stackedForwards,Ylo,50);
+        stackedFwd = bsxfun(@minus,stackedFwd, mean(stackedFwd));
+        stackedFullFwd = bsxfun(@minus,stackedFullFwd, mean(stackedFullFwd));
+        [betaPlos,lambdaPlos] = minNormFast(stackedFwd,Ylo,50);
+        [betaWhole,lambdaWhole] = minNormFast(stackedFullFwd, Ylo,50);
         
         prevRange = 0; % for counting from prev sbj
         nbS=1; % sbj count
@@ -102,13 +110,20 @@ if totBoot>0
             range = [0 cumsum(rangeROI)] + prevRange;
             region(nbS,:,:) = cell2mat(arrayfun(@(x) sum(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
             regionMean(nbS,:,:) = cell2mat(arrayfun(@(x) mean(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+            % whole brain use idxROIfwd & add 20484 for each sbj to account
+            % for stacked data
+            regionWhole(nbS,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x} + (nbS-1)*(length(betaWhole)/numSubs),:)),1:numROIs,'uni',false)');
+            regionWholeMean(nbS,:,:) = cell2mat(arrayfun(@(x) mean(betaWhole(idxROIfwd{iSub,x} + (nbS-1)*(length(betaWhole)/numSubs),:)),1:numROIs,'uni',false)');
+            % increment
             prevRange = range(end);nbS = nbS+1;
         end
         retrievePlos(bb,:,:) = mean(region); % for comparison with sum
         retrievePlosMean(bb,:,:) = mean(regionMean); % = code
-        
+        retrieveWhole(bb,:,:) = mean(regionWhole);
+        retrieveWholeMean(bb,:,:) = mean(regionWholeMean);
+        sampleN(bb,:) = pickN;    
     end
-    
+    save('simulOutput2/realData500.mat','sampleN','retrievePlos','retrievePlosMean','betaAverage','betaAveragePCA','retrieveWhole','retrieveWholeMean')
 else
     
     %%%%%% "PCA"
@@ -121,66 +136,57 @@ else
     Y2 = reshape(Ylo,[size(Y,2),numSubs,size(Y,3)]);
     Ypca = permute(Y2,[2 1 3]);
     
-    
     %% compute minimum norm
     
     % min_norm on average data: get beta values for each ROI over time
     [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y,1)));
     [betaAveragePCA, lambdaPCA] = minNormFast_lcurve(avMap, squeeze(mean(Ypca,1)));
-    
+
     %%%%%%%%%% PlosOne procedure
-    stackedForwards=[];
-    for iSub=numSubs
-        stackedForwards = blkdiag(stackedForwards, [roiFwd{iSub,:}]);
+    stackedFwd=[]; stackedFullFwd =[];
+    for iSub=1:numSubs
+        stackedFwd = blkdiag(stackedFwd, [roiFwd{iSub,:}]);
+        stackedFullFwd = blkdiag(stackedFullFwd, [fullFwd{iSub}]);
     end
-    stackedForwards = bsxfun(@minus,stackedForwards, mean(stackedForwards));
-    [betaPlos,lambdaPlos] = minNormFast(stackedForwards,Ylo,50);
-    
+    stackedFwd = bsxfun(@minus,stackedFwd, mean(stackedFwd));
+    [betaPlos,lambdaPlos] = minNormFast(stackedFwd,Ylo,50);
+    [betaWhole,lambdaWhole] = minNormFast(stackedFullFwd, Ylo,50);
+   
     prevRange = 0; % for counting from prev sbj
-    for iSub=numSubs
+    for iSub=1:numSubs
         % get the number of indexes per ROI for this subj
         rangeROI = cell2mat(arrayfun(@(x)  numel(idxROIfwd{iSub,x}),1:numROIs,'uni',false));
         range = [0 cumsum(rangeROI)] + prevRange;
         region(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
         regionMean(iSub,:,:) = cell2mat(arrayfun(@(x) mean(betaPlos(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
         prevRange = range(end);
+        % whole brain use idxROIfwd & add 20484 for each sbj to account
+        % for stacked data
+        regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x} + (iSub-1)*(length(betaWhole)/numSubs),:)),1:numROIs,'uni',false)');
     end
     retrievePlos = mean(region); % for comparison with sum
     retrievePlosMean = mean(regionMean); % = code
+    retrieveWhole = mean(regionWhole);
 end
 
-save('simulOutput/realData.mat','retrievePlos','retrievePlosMean','betaAverage','betaAveragePCA')
+% save('simulOutput/realDataCustom.mat','retrievePlos','retrievePlosMean','betaAverage','betaAveragePCA','betaMinNorm')
 
-reBeta = avMap * squeeze(mean(betaAveragePCA)); % reconstruct elec amplitude * time
-rePlos = avMap * squeeze(mean(retrievePlosMean)); % reconstruct elec amplitude * time
-% diff3 = squeeze(mean(Ypca(:,1,:),1)) - test(1,:)';
-% elecRMSE = rms(squeeze(mean(Ypca(:,1,:),1)) - test(1,:)');
-% diff = squeeze(mean(Ypca,1)) - test;
-betaRMSEpca = rms((squeeze(mean(Ypca,1)) - reBeta));
-plosRMSEpca = rms((squeeze(mean(Ypca,1)) - rePlos));
-betaRMSE = rms((squeeze(mean(Y,1)) - reBeta));
-plosRMSE = rms((squeeze(mean(Y,1)) - rePlos));
-figure;hold on
-plot(t,betaRMSEpca,'LineWidth',2); plot(t,plosRMSEpca,'LineWidth',2); 
-plot(t,betaRMSE,'LineWidth',2); plot(t,plosRMSE,'LineWidth',2);
-legend('tempYpca','plosYpca','tempY','plosY')
-xlabel('time');ylabel('RMSE');
-saveas(gcf,'figures/realDataRMSE','png')
 
-%%%%% figures
+%%%%% figures ROIs
 if totBoot>0 
     % plot different outputs in separate line
     count = 1; 
-    plotMod = 2; figure;set(gcf,'position',[10,10,2400,600])
+    plotMod = 1; figure;set(gcf,'position',[10,10,2400,600])
 %     plotMod = 4; figure;set(gcf,'position',[10,10,2400,1000])
     color = {'r','b'};
     for oo=1:plotMod
         if oo==1
-            data = betaAveragePCA;tname = 'templatePCA';
+            data = betaAveragePCA;tname = 'Template';
         elseif oo==2
-            data = retrievePlosMean;tname = 'constrainedMean';
+            data = retrieveWholeMean;tname = 'Individual';
         elseif oo==3
-            data = betaAverage;tname = 'template';
+            data = retrievePlosMean;tname = 'Individual-ROI';
+%             data = betaAverage1;tname = 'template';
         elseif oo==4
             data = retrievePlos;tname = 'constrainedSum';
         end
@@ -195,14 +201,8 @@ if totBoot>0
             patch([t fliplr(t)], [squeeze(ci95(1,iRoi,:))' fliplr(squeeze(ci95(2,iRoi,:))')]/ normVal,...
                 color{mod(iRoi,2)+1},'FaceAlpha',0.2, 'EdgeColor','none');
             line(t, zeros(size(t)),'Color','k')
-            test0 = zeros(length(data),1);
-            for tt=1:length(data)
-                test0(tt) = sum(data(:,iRoi,tt)>0) / totBoot;
-                if test0(tt) > 0.5
-                    test0(tt) = 1-test0(tt);
-                end
-            end
-            sig0 = find((test0<0.025));
+            test0 = squeeze(ci95(1,iRoi,:)<=0 & 0<=ci95(2,iRoi,:) ); % test if 0 included in 95CI
+            sig0 = find((test0==0)); % get sig indexes
             if mod(iRoi,2)
                 scatter(t(sig0), repmat(-0.8,length(sig0),1),'b.')
             else
@@ -217,9 +217,9 @@ if totBoot>0
         title([tname tt(1:end-2)])
     end
     legend('left')
-    saveas(gcf,['figures/realDataCI' num2str(plotMod)],'png')
-    saveas(gcf,['figures/realDataCI' num2str(plotMod)],'fig')
-    print(gcf,['figures/realDataCI' num2str(plotMod)],'-depsc')   
+    saveas(gcf,['figures/realDataCustom'],'png')
+    saveas(gcf,['figures/realDataCustom' ],'fig')
+    print(gcf,['figures/realDataCustom' ],'-depsc')   
     
 else
     %% Plot without bootstrap
@@ -264,3 +264,91 @@ else
 end
 
 
+if totBoot == 0
+addpath('/Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated/')
+addpath(genpath('/Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork'));
+
+load('simulOutput2/dataLasso.mat')
+reLasso = squeeze(mean(unstackedYhatLASSO,2));
+%%% topography 250 ms (as in Plos One)
+reBeta = avMap * betaAveragePCA; % reconstruct elec amplitude * time
+% for individual source loc, need to reconstruct per sbj
+YhatPlos=stackedFwd*betaPlos;
+unstackedYhatPlos = reshape(YhatPlos,128,numSubs,780);
+rePlos = squeeze(mean(unstackedYhatPlos,2));
+YhatWhole=stackedFullFwd*betaWhole;
+unstackedYhatWhole = reshape(YhatWhole,128,numSubs,780);
+reWhole = squeeze(mean(unstackedYhatWhole,2));
+
+timeToPlot = 250;
+layoutData = '/Users/marleneponcet/Documents/Git/templateMinNorm/createTemplate/layout/GSN-HydroCel-128.sfp';
+mm = round(max([abs(mean(Ypca(:,:,timeToPlot),1))'; abs(reBeta(:,timeToPlot)); ...
+    abs(rePlos(:,timeToPlot)); abs(reLasso(:,timeToPlot))]),1);
+
+% 2D fieldtrip
+figure;
+subplot(2,3,1);plotTopo(mean(Ypca(:,:,timeToPlot),1),layoutData);caxis([-mm mm]);title('data')
+subplot(2,3,2);plotTopo(reBeta(:,timeToPlot),layoutData);caxis([-mm mm]);title('Template')
+subplot(2,3,3);plotTopo(rePlos(:,timeToPlot),layoutData);caxis([-mm mm]);title('Individual')
+subplot(2,3,4);plotTopo(reWhole(:,timeToPlot),layoutData);caxis([-mm mm]);title('Individual Subset')
+subplot(2,3,5);plotTopo(reWhole(:,timeToPlot),layoutData);caxis([-mm mm]);title('Lasso')
+colorcet('D1')
+set(gcf, 'Position', [100 500 1000 600]);
+saveas(gcf,['figures/realDataTopo2D'],'png')
+saveas(gcf,['figures/realDataTopo2D'],'fig')
+print(gcf,['figures/realDataTopo2D'],'-depsc')
+
+% % 2D Justin
+% figure;
+% subplot(2,2,1);plotOnEgi(mean(Ypca(:,:,timeToPlot),1));caxis([-mm mm]);title('data')
+% subplot(2,2,2);plotOnEgi(reBeta(:,timeToPlot));caxis([-mm mm]);title('template')
+% subplot(2,2,3);plotOnEgi(rePlos(:,timeToPlot));caxis([-mm mm]);title('constrained')
+% subplot(2,2,4);plotOnEgi(reWhole(:,timeToPlot));caxis([-mm mm]);title('tailored')
+% colorcet('D1')
+% set(gcf, 'Position', [100 500 1000 600]);
+% saveas(gcf,['figures/realDataTopo2D_justin'],'png')
+% saveas(gcf,['figures/realDataTopo2D_justin'],'fig')
+% print(gcf,['figures/realDataTopo2D_justin'],'-depsc')
+
+% 3D
+figure;
+subplot(2,3,1);
+plotContourOnScalp(mean(Ypca(:,:,timeToPlot),1),'skeri0044',...
+    '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+view(20,35);camproj('perspective');axis off;caxis([-mm mm]);title('data')
+subplot(2,3,2);
+plotContourOnScalp(reBeta(:,timeToPlot),'skeri0044',...
+    '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+view(20,35);camproj('perspective');axis off;caxis([-mm mm]);title('template')
+subplot(2,3,3);
+plotContourOnScalp(rePlos(:,timeToPlot),'skeri0044',...
+    '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+view(20,35);camproj('perspective');axis off;caxis([-mm mm]);title('constrained')
+subplot(2,3,4);
+plotContourOnScalp(reWhole(:,timeToPlot),'skeri0044',...
+    '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+view(20,35);camproj('perspective');axis off;caxis([-mm mm]);title('tailored')
+subplot(2,3,5);
+plotContourOnScalp(reWhole(:,timeToPlot),'skeri0044',...
+    '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+set(gcf, 'Position', [100 500 1000 600]);
+view(20,35);camproj('perspective');axis off;caxis([-mm mm]);title('lasso')
+saveas(gcf,['figures/realDataTopo3D'],'png')
+saveas(gcf,['figures/realDataTopo3D'],'fig')
+print(gcf,['figures/realDataTopo3D'],'-depsc')
+end
+
+%%% RMSE
+% diff3 = squeeze(mean(Ypca(:,1,:),1)) - test(1,:)';
+% elecRMSE = rms(squeeze(mean(Ypca(:,1,:),1)) - test(1,:)');
+% diff = squeeze(mean(Ypca,1)) - test;
+betaRMSEpca = rms((squeeze(mean(Ypca,1)) - reBeta));
+plosRMSEpca = rms((squeeze(mean(Ypca,1)) - rePlos));
+betaRMSE = rms((squeeze(mean(Y,1)) - reBeta));
+plosRMSE = rms((squeeze(mean(Y,1)) - rePlos));
+figure;hold on
+plot(t,betaRMSEpca,'LineWidth',2); plot(t,plosRMSEpca,'LineWidth',2); 
+plot(t,betaRMSE,'LineWidth',2); plot(t,plosRMSE,'LineWidth',2);
+legend('tempYpca','plosYpca','tempY','plosY')
+xlabel('time');ylabel('RMSE');
+saveas(gcf,'figures/realDataRMSE','png')
