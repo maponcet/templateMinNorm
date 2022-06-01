@@ -1,11 +1,11 @@
 clearvars;close all;
-% simulate ERP from outside the 18 ROIs by picking some sources that are
+% simulate ERP from outside the 18 ROIs by picking some sources with index
 % >15000
 
 % retrieve the sources using different methods (template, ROI, whole brain)
 % Each simulation uses a different set of sbj and ERP but the same one is
 % tested across different levels of noise and number of sbj
-
+addpath(genpath([pwd filesep 'subfunctions']))
 addpath(([pwd filesep 'subfunctions']))
 addpath('/Users/marleneponcet/Documents/Git/ssvepTesting/svndlCopy/') % for plotEGI
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
@@ -88,14 +88,15 @@ for repBoot=1:totBoot
             
             % min_norm on average data: get beta values for each ROI over time
             [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+            reHatAverage = avMap * betaAverage; % reconstruct scalp activity: elec amplitude * time
             
             for iSub=1:numSubs
                 % regular minimum_norm: on the 20484 indexes per sbj
                 [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaWholeLC, lambdaWholeLC] = minNormFast_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
+%                 [betaWholeLC, lambdaWholeLC] = minNormFast_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
                 
                 [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaROILC, lambdaROILC] = minNormFast_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));
+%                 [betaROILC, lambdaROILC] = minNormFast_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));
                 
                 % beta values are for the indexes, but needs it per ROI
                 % get the number of indexes per ROI for this subj
@@ -104,41 +105,43 @@ for repBoot=1:totBoot
                 range = [0 cumsum(rangeROI)]; % cumulative sum of elements
                 % SUM (not average) the beta values per ROI (=across the indexes)
                 regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-                regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+%                 regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
                 
                 % need to find the indexes for whole brain -> use idxROIfwd
                 % (no need to get the range)
                 regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-                regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-                
+%                 regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+
+                % reconstruct scalp activation
+                reHatROI_ind(iSub,:,:)=[roiFwd{iSub,:}]*betaROI;
+                reHatWhole_ind(iSub,:,:)=fullFwd{iSub}*betaWhole;
+                reHatWholeROI_ind(iSub,:,:)=[roiFwd{iSub,:}]*betaWhole([idxROIfwd{iSub,:}],:);
             end
             % average across subj
             retrieveWhole = squeeze(mean(regionWhole,1));
             retrieveROI = squeeze(mean(regionROI,1));
-            retrieveWholeLC = squeeze(mean(regionWholeLC,1));
-            retrieveROILC = squeeze(mean(regionROILC,1));
+%             retrieveWholeLC = squeeze(mean(regionWholeLC,1));
+%             retrieveROILC = squeeze(mean(regionROILC,1));
+
+            % average Yhat
+            reHatWhole = squeeze(mean(reHatWhole_ind,1));
+            reHatROI = squeeze(mean(reHatROI_ind,1));
+            reHatWholeROI = squeeze(mean(reHatWholeROI_ind,1));
             
-            figure;subplot(3,2,1);imagesc(betaAverage/max(betaAverage(:)));caxis([0 1]);title('template')
-            subplot(3,2,3);imagesc(retrieveWhole/max(retrieveWhole(:)));caxis([0 1]);title('whole')
-            subplot(3,2,4);imagesc(retrieveWholeLC/max(retrieveWholeLC(:)));caxis([0 1])
-            subplot(3,2,5);imagesc(retrieveROI/max(retrieveROI(:)));caxis([0 1]);title('ROI')
-            subplot(3,2,6);imagesc(retrieveROILC/max(retrieveROILC(:)));caxis([0 1])
+            figure;subplot(1,3,1);imagesc(betaAverage/max(betaAverage(:)));caxis([0 1]);title('template');axis square
+            subplot(1,3,2);imagesc(retrieveWhole/max(retrieveWhole(:)));caxis([0 1]);title('whole');axis square
+%             subplot(3,2,4);imagesc(retrieveWholeLC/max(retrieveWholeLC(:)));caxis([0 1])
+            subplot(1,3,3);imagesc(retrieveROI/max(retrieveROI(:)));caxis([0 1]);title('ROI');axis square
+%             subplot(3,2,6);imagesc(retrieveROILC/max(retrieveROILC(:)));caxis([0 1])
             saveas(gcf,['figures/outROIsim' num2str(repBoot) 'betas'],'png')
             
             %%% plot topographies at t=8
-            predTemp = avMap * betaAverage;
-            predWhole = avMap * retrieveWhole;
-            predWholeLC = avMap * retrieveWholeLC;
-            predROI = avMap * retrieveROI;
-            predROILC = avMap * retrieveROILC;
-            
             figure;set(gcf, 'Position', [0 0 900 700])
-            subplot(3,2,1);plotOnEgi(squeeze(mean(Y_avg(:,:,8),1))');title('data')
-            subplot(3,2,2);plotOnEgi(predTemp(:,8));title('template')
-            subplot(3,2,3);plotOnEgi(predWhole(:,8));title('whole')
-            subplot(3,2,4);plotOnEgi(predWholeLC(:,8));title('wholeLC')
-            subplot(3,2,5);plotOnEgi(predROI(:,8));title('ROI')
-            subplot(3,2,6);plotOnEgi(predROILC(:,8));title('ROILC')
+            subplot(2,3,1);plotOnEgi(squeeze(mean(Y_avg(:,:,8),1))');title('data')
+            subplot(2,3,2);plotOnEgi(reHatWhole(:,8));title('whole')
+            subplot(2,3,4);plotOnEgi(reHatAverage(:,8));title('template')
+            subplot(2,3,5);plotOnEgi(reHatROI(:,8));title('ROI')
+            subplot(2,3,6);plotOnEgi(reHatWholeROI(:,8));title('whole - beta not in ROI')
             saveas(gcf,['figures/outROIsim' num2str(repBoot)],'png')
         end % noise
         
