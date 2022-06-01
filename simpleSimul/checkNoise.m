@@ -22,9 +22,9 @@ activeROIs = [sourceL,sourceR]; % left sources then right sources to make it eas
 ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
 
 % nbSbjToInclude =[1 2 5 10 20 30 40 50];
-numSubs = 50;
 snrRawTime = zeros(5,length(SNRlevel));
-
+listSub = [2 30 19 5 44 46 22 9 6 12 17 31 11 21 3 18 38 49 32 34];
+numSubs = length(listSub);
 
         
 for test=1:5   
@@ -37,12 +37,13 @@ for test=1:5
 timeBase = setdiff(1:size(srcERP,2),winERP);
 
 % clf;
-f1=figure; set(gcf,'position',[100,100,1200,700]);hold on;
+f1=figure; set(gcf,'position',[100,100,1500,700]);hold on;
 % f2=figure; set(gcf,'position',[100,100,1200,700]);hold on;
 
 
-% list of random sbj with replacement
-listSub = randi(length(dirList),numSubs,1);
+% % list of random sbj with replacement
+% listSub = randi(length(dirList),numSubs,1);
+
 
 %% LOAD FWD
 fullFwd=cell(1,numSubs);roiFwd=cell(numSubs,numROIs);idxROIfwd=cell(numSubs,numROIs);
@@ -130,20 +131,32 @@ for level=1:length(SNRlevel)
 %         title(['SNR' num2str(SNRlevel(level))])
 %         legend('S1','S2','S3','S4')
             
+        %62 = Pz, 75 = Oz, 72 = POz
         figure(f1);
-        subplot(2,5,level);hold on;
-        plot(squeeze(Y(15,18,:))); 
-        plot(squeeze(Y(5,18,:))); 
-        plot(squeeze(Y(10,18,:))); 
-        legend('S2','S5','S10')
+        subplot(4,5,level);hold on;elec=75;
+        plot(squeeze(Y(1,elec,:))); 
+        plot(squeeze(Y(2,elec,:))); 
+        plot(squeeze(Y(3,elec,:))); xlim([1 max(timeBase)]) 
+        legend('S2','S30','S19')
         title(['SNR ' num2str(SNRlevel(level))])
-        subplot(2,5,level+5);hold on;
-        plot(squeeze(mean(Y(1:20,18,:),1)));
+        subplot(4,5,level+5);hold on;
+        plot(squeeze(mean(Y(:,elec,:),1)));xlim([1 max(timeBase)]) 
+        subplot(4,5,level+10);hold on;elec=62;
+        plot(squeeze(Y(1,elec,:))); 
+        plot(squeeze(Y(2,elec,:))); 
+        plot(squeeze(Y(3,elec,:)));xlim([1 max(timeBase)]) 
+        legend('S2','S30','S19')
+        title(['SNR ' num2str(SNRlevel(level))])
+        subplot(4,5,level+15);hold on;
+        plot(squeeze(mean(Y(:,elec,:),1)));xlim([1 max(timeBase)]) 
         legend('average 20')
         
 end % SNR
 % saveas(f1,['figures' filesep 'checkSNRt' num2str(test)],'png')
 % saveas(f2,['figures' filesep 'checkSNRindT' num2str(test)],'png')
-saveas(f1,['figures' filesep 'checkSNRmixT' num2str(test)],'png')
+saveas(f1,['figures' filesep 'checkSNR' num2str(test)],'png')
+saveas(f1,['figures' filesep 'checkSNR' num2str(test)],'fig')
+print(f1,['figures' filesep 'checkSNR' num2str(test)],'-depsc')
+
 end
 

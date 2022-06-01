@@ -28,9 +28,9 @@ end
 end
 
 %%% plot metrics
-modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','averageOracle'};
+modName = {'template','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','templateBestRegul'};
 
-nbModel = 4;
+nbModel = 8;
 figure;hold on
 for model=1:nbModel
 for ss=1:size(simulERP,2)
@@ -46,9 +46,9 @@ for ss=1:size(simulERP,2)
     ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
 end
 end
-legend('N=2','N=8','N=20','N=50')
-% set(gcf,'position',[100 100 2200 700])
-set(gcf,'position',[100 100 1100 700])
+% legend('N=2','N=8','N=20','N=50')
+set(gcf,'position',[100 100 2200 700])
+% set(gcf,'position',[100 100 1100 700])
 saveas(gcf,['figures' filesep 'metricsV1MT'],'png')
 saveas(gcf,['figures' filesep 'metricsV1MT'],'fig')
 print(gcf,['figures' filesep 'metricsV1MT'],'-depsc')
@@ -56,30 +56,60 @@ print(gcf,['figures' filesep 'metricsV1MT'],'-depsc')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% plot BETAs for sbj=50, noise=10, bootstrap=1
-noise=3;sbj=size(simulERP,2);repBoot=1;
-listROIs = simulERP(1,1,1).listROIs;
+% noise=3;sbj=size(simulERP,2);repBoot=1;
+% listROIs = simulERP(1,1,1).listROIs;
+% 
+% figure; count=1;
+% currBeta = simulERP(repBoot,sbj,noise).srcERP;
+% for iRoi = 1:2:length(listROIs)
+%     subplot(5,9,count);hold on
+%     plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+% %     plot(currBeta(iRoi+1,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+%     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2) ,'LineWidth',2)
+%     ylim([-1 1]);count=count+1;
+% end
+% % legend('left','right','location','best')
+% for model=1:4
+%     currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(model,:,:));
+%     for iRoi = 1:2:length(listROIs)
+%         % need to normalise the signal
+%         subplot(5,9,count);hold on
+%         plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+% %         plot(currBeta(iRoi+1,:) / max(max(abs(currBeta))) ,'LineWidth',2);
+%         tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
+%         ylim([-1 1]);count=count+1;
+% %         legend('left','right')
+%     end
+% end
 
-figure; count=1;
 currBeta = simulERP(repBoot,sbj,noise).srcERP;
+beta1 = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
+beta2 = squeeze(simulERP(repBoot,sbj,noise).beta(2,:,:));
+beta3 = squeeze(simulERP(repBoot,sbj,noise).beta(3,:,:));
+beta4 = squeeze(simulERP(repBoot,sbj,noise).beta(4,:,:));
+beta5 = squeeze(simulERP(repBoot,sbj,noise).beta(8,:,:));
+count=1;
+figure
 for iRoi = 1:2:length(listROIs)
-    subplot(5,9,count);hold on
+    subplot(6,9,count);hold on
     plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
-    plot(currBeta(iRoi+1,:) / max(max(abs(currBeta))) ,'LineWidth',2);
     tt = cell2mat(listROIs(iRoi));title(tt(1:end-2) ,'LineWidth',2)
-    ylim([-1 1]);count=count+1;
-end
-legend('left','right','location','best')
-for model=1:4
-    currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(model,:,:));
-    for iRoi = 1:2:length(listROIs)
-        % need to normalise the signal
-        subplot(5,9,count);hold on
-        plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
-        plot(currBeta(iRoi+1,:) / max(max(abs(currBeta))) ,'LineWidth',2);
-        tt = cell2mat(listROIs(iRoi));title(tt(1:end-2))
-        ylim([-1 1]);count=count+1;
-%         legend('left','right')
-    end
+    subplot(6,9,count+9);hold on
+    plot(beta1(iRoi,:) / max(max(abs(beta1))) ,'LineWidth',2);ylim([-1 1]);
+    title('template')
+    subplot(6,9,count+9*2);hold on
+    plot(beta2(iRoi,:) / max(max(abs(beta2))) ,'LineWidth',2);ylim([-1 1]);
+    title('whole')
+    subplot(6,9,count+9*3);hold on
+    plot(beta3(iRoi,:) / max(max(abs(beta3))) ,'LineWidth',2);ylim([-1 1]);
+    title('ROI')
+    subplot(6,9,count+9*4);hold on
+    plot(beta4(iRoi,:) / max(max(abs(beta4))) ,'LineWidth',2);ylim([-1 1]);
+    title('oracle')
+    subplot(6,9,count+9*5);hold on
+    plot(beta5(iRoi,:) / max(max(abs(beta5))) ,'LineWidth',2);ylim([-1 1]);
+    title('best regul')
+    count = count+1;
 end
 set(gcf,'position',[100,100,2000,900])
 saveas(gcf,'figures/betaErp' ,'png')
@@ -87,53 +117,10 @@ saveas(gcf,'figures/betaErp' ,'fig')
 print(gcf,'figures/betaErp' ,'-depsc')
 
 
-currBeta = simulERP(repBoot,sbj,noise).srcERP;
-beta1 = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
-beta2 = squeeze(simulERP(repBoot,sbj,noise).beta(2,:,:));
-beta3 = squeeze(simulERP(repBoot,sbj,noise).beta(3,:,:));
-beta4 = squeeze(simulERP(repBoot,sbj,noise).beta(4,:,:));
-count=1;
-figure
-for iRoi = 1:2:length(listROIs)
-    subplot(5,9,count);hold on
-    plot(currBeta(iRoi,:) / max(max(abs(currBeta))) ,'LineWidth',2);
-    subplot(5,9,count+9);hold on
-    plot(beta1(iRoi,:) / max(max(abs(beta1))) ,'LineWidth',2);ylim([-1 1]);
-    subplot(5,9,count+9*2);hold on
-    plot(beta2(iRoi,:) / max(max(abs(beta2))) ,'LineWidth',2);ylim([-1 1]);
-    subplot(5,9,count+9*3);hold on
-    plot(beta3(iRoi,:) / max(max(abs(beta3))) ,'LineWidth',2);ylim([-1 1]);
-    subplot(5,9,count+9*4);hold on
-    plot(beta4(iRoi,:) / max(max(abs(beta4))) ,'LineWidth',2);ylim([-1 1]);
-    count = count+1;
-end
-
-% %%% plot topo
-% addpath('/Users/marleneponcet/Documents/Git/svndl_code/alesToolbox')
-% yData = simulERP(repBoot,sbj,noise).data;
-% yAvg = squeeze(mean(yData));
-% figure;
-% subplot(3,3,1); plotOnEgi(yAvg(:,50))
-% subplot(3,3,2); plotOnEgi(yAvg(:,120))
-% subplot(3,3,3); plotOnEgi(yAvg(:,180))
-% currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(1,:,:));
-% load('averageMap50Sum.mat')
-% tempY = avMap * currBeta;
-% subplot(3,3,4); plotOnEgi(tempY(:,50))
-% subplot(3,3,5); plotOnEgi(tempY(:,120))
-% subplot(3,3,6); plotOnEgi(tempY(:,180))
-% currBeta = squeeze(simulERP(repBoot,sbj,noise).beta(4,:,:));
-% oracleY = avMap * currBeta;
-% subplot(3,3,7); plotOnEgi(oracleY(:,50))
-% subplot(3,3,8); plotOnEgi(oracleY(:,120))
-% subplot(3,3,9); plotOnEgi(oracleY(:,180))
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clearvars;close all;
 load('simulOutput/simulV2V4output.mat')
-% 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
 winERP = simulERP(1,1).winERP;
 nbModel = 8;
 SNRlevel = unique([simulERP.noise]);
@@ -152,8 +139,8 @@ for repBoot=1:size(simulERP,1)
 end
 end
 %%% plot metrics
-modName = {'average','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','averageOracle'};
-nbModel = 4;
+modName = {'template','whole','ROI','Oracle','wholeLC','ROILC','OracleLC','templateBestRegul'};
+nbModel = 8;
 figure;hold on
 for model=1:nbModel
 for ss=1:size(simulERP,2)
@@ -169,9 +156,9 @@ for ss=1:size(simulERP,2)
     ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
 end
 end
-legend('N=2','N=8','N=20','N=50')
-% set(gcf,'position',[100 100 2200 700])
-set(gcf,'position',[100 100 1200 800])
+% legend('N=2','N=8','N=20','N=50')
+set(gcf,'position',[100 100 2200 700])
+% set(gcf,'position',[100 100 1200 800])
 saveas(gcf,['figures' filesep 'metricsV2V4'],'png')
 saveas(gcf,['figures' filesep 'metricsV2V4'],'fig')
 print(gcf,['figures' filesep 'metricsV2V4'],'-depsc')
@@ -213,7 +200,7 @@ clearvars;close all;
 load('simulOutput/simulStepBilat.mat')
 % 20 sbj, SNR=10, 2:2:18 active ROIs (bilateral activation)
 winERP = simulBilat(1,1).winERP;
-nbModel = 6;
+nbModel = 6; % models: 'template','whole','ROI','Oracle',OracleLC,'templateBestRegul'
 % initialise variables
 aucAve = zeros(size(simulBilat,1),nbModel,size(simulBilat,2));
 energyAve = aucAve;
@@ -283,17 +270,20 @@ saveas(gcf,['figures' filesep 'testSNR%bilat'],'png')
 figure;
 for mm=[1:4 6]
     subplot(1,3,1);hold on;
-    errorbar(2:2:18,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2)
-    xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([2 18]);
+    errorbar(2:2:18,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2,'CapSize',0)
+    xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([2 18]);axis square
     subplot(1,3,2);hold on;
-    errorbar(2:2:18,squeeze(mean(energyAve(:,mm,:))),squeeze(std(energyAve(:,mm,:),1)),'LineWidth',2)
-    ylim([0 1]);ylabel('Energy');xlim([2 18]);
+    errorbar(2:2:18,squeeze(mean(energyAve(:,mm,:))),squeeze(std(energyAve(:,mm,:),1)),'LineWidth',2,'CapSize',0)
+    ylim([0 1]);ylabel('Energy');xlim([2 18]);axis square
     subplot(1,3,3);hold on;
-    errorbar(2:2:18,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2)
-    ylabel('MSE');ylim([0 1]);xlim([2 18]);
+    errorbar(2:2:18,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2,'CapSize',0)
+    ylabel('MSE');ylim([0 1]);xlim([2 18]);axis square
 end
-legend('average','whole','ROI','OracleGCV','averageOracle');
+legend('average','whole','ROI','Oracle','template optimal');
+set(gcf,'position',[100 100 1000 300])
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep'],'png')
+saveas(gcf,['figures' filesep 'nbOfBilatROIsStep'],'fig')
+print(gcf,['figures' filesep 'nbOfBilatROIsStep'],'-depsc')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -492,18 +482,18 @@ figure;hold on
 for sys=1:size(simulSys,3)
 for model=1:nbModel
     subplot(3,size(simulSys,3),sys);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC')
     title(sysName(sys))
     subplot(3,size(simulSys,3),sys+size(simulSys,3));hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
     subplot(3,size(simulSys,3),sys+size(simulSys,3)*2);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     ylabel('MSE');ylim([0 1])
 end
 end
-legend('Template','Whole','ROI','Oracle','TemplateOracle')
+legend('Template','Whole','ROI','Oracle','TemplateBestRegul')
 set(gcf,'position',[100 100 1500 700])
 saveas(gcf,['figures' filesep 'compSysV1MT'],'png')
 
@@ -542,18 +532,18 @@ figure;hold on
 for sys=1:size(simulSys,3)
 for model=1:nbModel
     subplot(3,size(simulSys,3),sys);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC')
     title(sysName(sys))
     subplot(3,size(simulSys,3),sys+size(simulSys,3));hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
     subplot(3,size(simulSys,3),sys+size(simulSys,3)*2);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2)
+    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
     ylabel('MSE');ylim([0 1])
 end
 end
-legend('Template','Whole','ROI','Oracle','TemplateOracle')
+legend('Template','Whole','ROI','Oracle','TemplateBestRegul')
 set(gcf,'position',[100 100 1500 700])
 saveas(gcf,['figures' filesep 'compSysV2V4'],'png')
 
@@ -582,25 +572,25 @@ for sys=1:size(simulSys,3)
 end
 end
 %%% plot metrics for template
-nameModel = {'Template','Whole','ROI','Oracle','TemplateOracle'};
-nbModel = 4;
+nameModel = {'Template','Whole','ROI','Oracle','TemplateBestRegul'};
+nbModel = 5;
 figure;hold on
 for model=1:nbModel
     for sys=1:size(simulSys,3)
-        subplot(3,nbModel,model);hold on;
+        subplot(nbModel,3,1+3*(model-1));hold on;
         errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,sys,model))),squeeze(std(aucAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
-        xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC');
-        subplot(3,nbModel,4+model);hold on;
+        xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC');xticks([-1:1:4]);axis square
+        subplot(nbModel,3,2+3*(model-1));hold on;
         errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,sys,model))),squeeze(std(energyAve(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
-        ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
-        subplot(3,nbModel,8+model);hold on;
+        ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');xticks([-1:1:4]);axis square
+        subplot(nbModel,3,3+3*(model-1));hold on;
         errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,sys,model))),squeeze(std(mseAveNorm(:,:,sys,model),1)),'LineWidth',2,'CapSize',0)
-        ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
+        ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);xticks([-1:1:4]);axis square
     end
-    legend({'32','64','128','256'})
+%     legend({'32','64','128','256'})
     title(nameModel{model})
 end
-set(gcf,'position',[100 100 1200 800])
+set(gcf,'position',[100 100 800 1000])
 saveas(gcf,'figures/compSysRand','png')
 saveas(gcf,'figures/compSysRand','fig')
 print(gcf,'figures/compSysRand','-depsc')
@@ -684,5 +674,8 @@ ylabel('seedArea');xlabel('predictArea')
 title('template best reg param')
 subplot(2,3,6);colorbar
 colorcet('grey','reverse',1); % Gouldian reducedgrey heat L12 L18
+colorcet('L12'); % Gouldian reducedgrey heat L12 L18
 set(gcf,'position',[100,100,1500,1000])
-saveas(gcf,['figures' filesep 'crossTalkStepSNR200' 'grey'],'png')
+saveas(gcf,['figures' filesep 'crossTalkStepSNR200' 'L12'],'png')
+saveas(gcf,['figures' filesep 'crossTalkStepSNR200' 'L12'],'fig')
+saveas(gcf,['figures' filesep 'crossTalkStepSNR200' 'L12'],'eps')

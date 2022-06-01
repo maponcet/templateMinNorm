@@ -35,29 +35,34 @@ save roiBootstrapFromfwd.mat percErr listROIs
 %%%%%%%%%%%%%%%%%%%%%%%
 % percErr: boot, sbj, electrodes, roi
 load('roiBootstrapFromfwd.mat')
-% average across electrodes
-prctError = squeeze(mean(percErr,3));
+prctError = rmseROI;
+% % average across electrodes
+% prctError = squeeze(mean(percErr,3));
 
+gg=1;
 figure;hold on;
-set(gcf,'position',[100,100,1500,700])
-for src=1:size(prctError,3)
+set(gcf,'position',[100,100,1800,500])
+for src=[1:2:18 2:2:18]
     bb = prctile(prctError(:,:,src),97.5);
-    subplot(3,6,src); hold on;
+    subplot(2,9,gg); hold on;
     plot(mean(prctError(:,:,src),1),'LineWidth',2)
-    plot(sqrt(mean(prctError(:,:,src),1)),'LineWidth',2)
-%     patch([1:size(prctError,2) size(prctError,2):-1:1],[ prctile(prctError(:,:,src),2.5) bb(end:-1:1)],'b','FaceAlpha',.1)
-    xlabel('nb sbj included')
-    ylabel('% error')
+%     plot(sqrt(mean(prctError(:,:,src),1)),'LineWidth',2)
+    patch([1:size(prctError,2) size(prctError,2):-1:1],[ prctile(prctError(:,:,src),2.5) bb(end:-1:1)],'b','FaceAlpha',.1)
+    xlabel('log (N)')
+    ylabel('log (% error)')
     set(gca, 'YScale', 'log','XScale', 'log')
-    xlim([0 50]); %ylim([0 250])
-    [aa, bb] = polyfit(log10(1:50),log10(mean(prctError(:,:,src),1)),1);
-    title([listROIs{src} ' S=' num2str(aa(1),'%.2f')])
+    xlim([1 50]); ylim([1 60])
+%     [aa, bb] = polyfit(log10(1:50),log10(mean(prctError(:,:,src),1)),1);
+%     title([listROIs{src} ' S=' num2str(aa(1),'%.2f')])
+    title(listROIs{src})
+    gg=gg+1;
 end
 saveas(gcf,['figures' filesep 'prctErrorLog'],'png')
+saveas(gcf,['figures' filesep 'prctErrorLog'],'fig')
+print(gcf,['figures' filesep 'prctErrorLog'],'-depsc')
 % slope = -0.5 so for 1 Yunit needs 2Xunit, if log10 then change 10^1 error needs
 % 10^2 sbj; for decrease of half error (log2^1) needs 2^2 = quadruple sbj
 % is it just because of the way we do the bootstrap???????
-
 
 
 %%%% plot std

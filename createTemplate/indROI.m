@@ -2,13 +2,26 @@
 % using 256 electrodes and other plotting functions
 % Use forward matrices from specified folder (can be any montage as long as
 % the electrode layout matches)
+% Addition: do for 128 EGI
 
 clearvars
+% add path for plotTopo  ft_prepare_layout plotOnEGI
+addpath /Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated
+addpath /Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork
+addpath /Users/marleneponcet/Documents/Git/svndl_code/alesToolbox
+
+
+%%% 256 EGI
 listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI256/*.mat');
+elecLayout = 'layout/GSN-HydroCel-256.sfp'; % 'layout/biosemi256.lay'
+
+%%% 128 EGI
+listFiles = dir('/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128/*.mat');
+elecLayout = 'layout/GSN-HydroCel-128.sfp'; % 'layout/biosemi256.lay'
+
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
-elecLayout = 'layout/GSN-HydroCel-256.sfp'; % 'layout/biosemi256.lay'
 roiMap=[];aa=0;
 roiMapMean=[];roiMapSum=[];
 for ff=1:length(listFiles)
@@ -53,7 +66,9 @@ for ff=4:6
     colorcet('D1')
 end
 set(gcf,'position',[100,100,1000,600])
-saveas(gcf,'indROI/representative256','png')
+saveas(gcf,'indROI/representative128','png')
+saveas(gcf,'indROI/representative128','fig')
+print(gcf,'indROI/representative128','-depsc')
 
 % same but EEGlab topoplot
 pickROI = 2; pickInd = [2 30 19];
@@ -117,3 +132,96 @@ for tt = 1:size(pickROI,1)
     caxis([-scale scale]);colorcet('D1');
 end
 saveas(gcf,'indROI/bilatS1_256','png')
+
+
+
+
+
+
+pickROI = 2; pickInd = [2 30 19];
+minScale = min(min(roiMapSum(:,pickROI,pickInd)));
+maxScale = max(max(roiMapSum(:,pickROI,pickInd)));
+scale = max([abs(minScale) abs(maxScale)]);
+figure;
+for ff=1:3
+    subplot(2,3,ff);
+    plotOnEgi(roiMapSum(:,pickROI,pickInd(ff)))
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+    colorcet('D1')
+end
+pickROI = 18; pickInd = [46 45 4];
+minScale = min(min(roiMapSum(:,pickROI,:)));
+maxScale = max(max(roiMapSum(:,pickROI,:)));
+scale = max([abs(minScale) abs(maxScale)]);
+for ff=4:6
+    subplot(2,3,ff);
+    plotOnEgi(roiMapSum(:,pickROI,pickInd(ff-3)))
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+    colorcet('D1')
+end
+set(gcf,'position',[100,100,1000,600])
+saveas(gcf,'indROI/representative128plotOnEgi','png')
+saveas(gcf,'indROI/representative128plotOnEgi','fig')
+print(gcf,'indROI/representative128plotOnEgi','-depsc')
+% same but EEGlab topoplot
+pickROI = 2; pickInd = [2 30 19];
+minScale = min(min(roiMapSum(:,pickROI,pickInd)));
+maxScale = max(max(roiMapSum(:,pickROI,pickInd)));
+scale = max([abs(minScale) abs(maxScale)]);
+figure;
+for ff=1:3
+    subplot(2,3,ff);
+    topoplot(roiMapSum(:,pickROI,pickInd(ff)),elecLayout,'colormap',colorcet('D1'),'electrodes','on' )
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+    colorcet('D1')
+end
+pickROI = 18; pickInd = [46 45 4];
+minScale = min(min(roiMapSum(:,pickROI,:)));
+maxScale = max(max(roiMapSum(:,pickROI,:)));
+scale = max([abs(minScale) abs(maxScale)]);
+for ff=4:6
+    subplot(2,3,ff);
+    topoplot(roiMapSum(:,pickROI,pickInd(ff-3)),elecLayout,'colormap',colorcet('D1'),'electrodes','on' )
+    caxis([-scale scale]);
+    title(listROIs{pickROI})
+    colorcet('D1')
+end
+set(gcf,'position',[100,100,1000,600])
+saveas(gcf,'indROI/representative128eeglab','png')
+saveas(gcf,'indROI/representative128eeglab','fig')
+print(gcf,'indROI/representative128eeglab','-depsc')
+
+
+pickROI = 2; pickInd = [2 30 19];
+minScale = min(min(roiMapSum(:,pickROI,pickInd)));
+maxScale = max(max(roiMapSum(:,pickROI,pickInd)));
+scale = max([abs(minScale) abs(maxScale)]);
+figure;
+for ff=1:3
+    subplot(2,3,ff);
+    plotContourOnScalp(roiMapSum(:,pickROI,pickInd(ff)),'skeri0044',...
+        '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+    view(20,35);camproj('perspective');axis off
+    caxis([-scale scale]);title(listROIs{pickROI})
+    title(listROIs{pickROI})
+    colorcet('D1')
+end
+pickROI = 18; pickInd = [46 45 4];
+minScale = min(min(roiMapSum(:,pickROI,:)));
+maxScale = max(max(roiMapSum(:,pickROI,:)));
+scale = max([abs(minScale) abs(maxScale)]);
+for ff=4:6
+    subplot(2,3,ff);
+    plotContourOnScalp(roiMapSum(:,pickROI,pickInd(ff-3)),'skeri0044',...
+        '/Users/marleneponcet/Documents/Git/templateMinNorm/PlosOne/github-archive/datafiles/eegdata/')
+    view(20,35);camproj('perspective');axis off
+    caxis([-scale scale]);title(listROIs{pickROI})
+    colorcet('D1')
+end
+set(gcf,'position',[100,100,800,800])
+saveas(gcf,'indROI/representative3D','png')
+saveas(gcf,'indROI/representative3D','fig')
+print('indROI/representative3D','-depsc')

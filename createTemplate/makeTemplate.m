@@ -43,16 +43,17 @@ avMap = mean(roiMap,3);
 regParam = sqrt(sum(avMap.^2,1));
 avMapNorm = bsxfun(@rdivide,avMap,regParam);
 
-elecDef = ft_read_sens('EEG systems/standard/standard_1005.elc');
-elecDef2 = ft_read_sens('EEG systems/standard/standard_1020.elc');
-
-save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels','elecDef')
-
+projectName = lower(projectName);
+if strcmp(projectName,'standard_1005')
+    elecDef = ft_read_sens('EEG systems/standard/standard_1005.elc');
+    save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels','elecDef')
+else
+    save(['templates' filesep 'template_' projectName '.mat'],'avMap','listROIs','chanLabels')
+end
 
 % plot if layout available
 mm = round(max(max(abs(avMap))),-1);
 nn = round(max(max(abs(avMapNorm))),1);
-projectName = lower(projectName);
 loc = [1:9;10:18]; loc = loc(:);
 if contains(projectName,'biosemi') 
     figure('position', [200, 1000, 2000, 500])
@@ -125,6 +126,8 @@ elseif strcmp(projectName,'standard_1005')
         colorcet('D1') 
     end
     saveas(gcf,['figures/averageMap' projectName],'png')
+    saveas(gcf,['figures/averageMap' projectName],'fig')
+    print(gcf,['figures/averageMap' projectName],'-depsc')
     figure('position', [200, 1000, 2000, 500])
     for roi=1:18
         subplot(2,9,loc(roi))

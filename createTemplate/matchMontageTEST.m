@@ -38,6 +38,8 @@ function customTemplates = matchTemplate(channelInfo,refIndex,varargin)
 % template assumed to be in the same directory, folder template but
 % directory can be picked manually when prompted if cannot be found
 
+% load('biosemi128_fieldtripChan.mat')
+% channelInfo = elec;
 
 if length(channelInfo) == 1 % not eeglab
     eeglabUser = 0; coordsys = 'RAS';nbChan = length(channelInfo);
@@ -175,6 +177,12 @@ EEG = pop_loadset('filename','VP01_rej.set','filepath','/Users/marleneponcet/Des
 testField = ft_read_sens('EEG systems/standard/standard_1020.elc');
 elecDef = ft_read_sens('EEG systems/standard/standard_1005.elc');
 
+elecDef = ft_read_sens('layout/GSN-HydroCel-128.sfp');
+
+listLabels = {'Fp1' 'Fp2' 'Fz' 'F7' 'F3' 'C3' 'T7' 'P3' 'P7' 'Pz' 'O1' 'Oz' ...
+    'O2' 'P4' 'P8' 'T8' 'C4' 'F4' 'F8' 'Cz' };
+%EGI128 = 22 9 11 33 24 36 45 52 58 62 70 75 83 92 96 108 104 124 122 0
+
 testField.chanpos = testField.chanpos .* [0.9 1.2 0.95];
 
 % plot
@@ -232,4 +240,63 @@ mm = round(max(max(abs(customTemplates.data))),-1);
     
 
 
+  %%% biosemi 64
+  % some electrodes are different between the 2 montages so topoplot would
+  % not work
+    elecSet = ([1:5 7:14 16:40 42:51 53:64]);
+    loc = [1:9;10:18]; loc = loc(:);
+    mm = round(max(max(abs(matchedTemplate))),-1);
+    figure('position', [200, 200, 1000, 200])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        topoplot(matchedTemplate(elecSet,roi),channelInfo(elecSet),'colormap','jet');
+        caxis([-mm mm]);title(listROIs(roi));
+    end
+    
+     loc = [1:9;10:18]; loc = loc(:);
+    mm = round(max(max(abs(interpTemplate))),-1);
+    figure('position', [200, 200, 1000, 200])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        topoplot(interpTemplate(elecSet,roi),channelInfo(elecSet),'colormap','jet');
+        caxis([-mm mm]);title(listROIs(roi));
+    end
+ 
+    mapBiosemi = load('templates/template_Biosemi64.mat');
+    loc = [1:9;10:18]; loc = loc(:);
+    mm = round(max(max(abs(mapBiosemi.avMap))),-1);
+    figure('position', [200, 200, 1000, 200])
+    for roi=1:18
+        subplot(2,9,loc(roi))
+        topoplot(mapBiosemi.avMap(:,roi),channelInfo,'colormap','jet');
+        caxis([-mm mm]);title(listROIs(roi));
+    end
 
+figure;
+subplot(2,3,1);imagesc(mapBiosemi.avMap(:,:));title('biosemi64');colorbar
+subplot(2,3,2);imagesc(matchedTemplate(:,:));title('knnsearch');colorbar
+subplot(2,3,3);imagesc(interpTemplate(:,:));title('interpolation');colorbar
+subplot(2,3,4);imagesc(mapBiosemi.avMap(:,:) - matchedTemplate(:,:));title('diff knnsearch');colorbar
+subplot(2,3,5);imagesc(mapBiosemi.avMap(:,:) - interpTemplate(:,:));title('diff interp');colorbar
+
+
+loc = [1:9;10:18]; loc = loc(:);
+mm = round(max(max(abs(mapBiosemi.avMap))),-1);
+figure('position', [200, 1000, 2000, 500])
+for roi=1:18
+    subplot(2,9,loc(roi))
+%     plotTopo(mapBiosemi.avMap(:,roi),'layout/biosemi128.lay');
+    plotTopo(mapBiosemi.avMap(:,roi),'layout/GSN-HydroCel-128.sfp');
+    caxis([-mm mm]);
+    title(listROIs(roi));
+    colorcet('D1')
+end
+    
+figure;imagesc(customTemplates.data(:,:) - matchedTemplate(:,:));title('diff knnsearch');colorbar
+
+figure;imagesc(mapBiosemi.avMap(:,:) - matchedTemplate(:,:));title('diff knnsearch');colorbar
+figure;imagesc(mapBiosemi.avMap(:,:) - customTemplates.data(:,:));title('diff knnsearch');colorbar
+
+mapBiosemi = load('template_Biosemi64.mat');
+mapStand = load('template_Standard_1005.mat');
+matchIndex = arrayfun(@(x) cellfind(mapStand.chanLabels,mapBiosemi.chanLabels{x}),1:length(mapBiosemi.chanLabels),'uni',false);
