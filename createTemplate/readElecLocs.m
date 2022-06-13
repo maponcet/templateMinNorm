@@ -51,7 +51,7 @@ switch eegSystem
         elecCoord = A(4:end-1,:); % skip 1st 3 fiducials & Cz
         fclose(fid);
         
-    case 'biosemi32'
+    case 'biosemi32' % using circumference = 55 cm
         elecIdx= [ 1 30 31 3 4 8 7 12 11 13 15 16 17 19 20 24 23 27 28];
         elecCoord = .001*[ -27	83	-3
             -36	76	24

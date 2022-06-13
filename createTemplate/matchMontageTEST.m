@@ -169,8 +169,10 @@ end
 
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-EEG = pop_loadset('filename','VP01_rej.set','filepath','/Users/marleneponcet/Desktop/testEEGlabData/');
+EEG = pop_loadset('filename','VP01_rej.set','filepath','/Users/marleneponcet/Documents/data/testEEGlabData/');
 [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
+EEG=pop_chanedit(EEG, 'lookup','/Users/marleneponcet/Documents/Git/eeglab/plugins/dipfit2.3/standard_BEM/elec/standard_1005.elc','rplurchanloc');
+[ALLEEG EEG] = eeg_store(ALLEEG, EEG, CURRENTSET);
 
 
 
@@ -182,6 +184,7 @@ elecDef = ft_read_sens('layout/GSN-HydroCel-128.sfp');
 listLabels = {'Fp1' 'Fp2' 'Fz' 'F7' 'F3' 'C3' 'T7' 'P3' 'P7' 'Pz' 'O1' 'Oz' ...
     'O2' 'P4' 'P8' 'T8' 'C4' 'F4' 'F8' 'Cz' };
 %EGI128 = 22 9 11 33 24 36 45 52 58 62 70 75 83 92 96 108 104 124 122 0
+%EGI128 reject = 22 9 11 33 24 36 45 51 57 61 69 73 80 88 92 104 100 119 117 0
 
 testField.chanpos = testField.chanpos .* [0.9 1.2 0.95];
 
