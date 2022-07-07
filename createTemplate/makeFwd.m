@@ -1,10 +1,15 @@
 function makeFwd(projectName)
 % create forward models and .mat files with fwdMatrix and roiInfo 
 % from the Axx_c001.fif files (creates skeri0001-fwd.fif, -sph-fwd)
-% e.g. makeFwd('Biosemi128')
+% e.g. makeFwd('EGI128')
 
-% need addpath fieldtrip-aleslab-fork/external/mne 
-% addpath(genpath('/Users/marleneponcet/Documents/Git/svndl_code/'))
+% addpath if needed
+if ~exist('prepareInversesForMrc','file')
+    addpath(genpath('/Users/marleneponcet/Documents/Git/svndl_code/'))
+end
+if ~exist('mne_read_forward_solution','file')
+    addpath (genpath('/Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork/external/mne/'))
+end
 
 % create the forward models
 if ~exist(['/Users/marleneponcet/Documents/data/skeriDATA/skeri' projectName],'dir')

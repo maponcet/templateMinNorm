@@ -11,3 +11,6 @@ electrode layout
 
 3. makeTemplate(EEGsystem) to load and sum the ROI across participants.
 The topographies are only plotted for standard layouts (from FieldTrip)
+
+4. plotTemplates (does it for all the templates that have been saved in the
+folder 'templates'

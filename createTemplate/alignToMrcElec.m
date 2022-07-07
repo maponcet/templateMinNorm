@@ -1,7 +1,11 @@
 function alignToMrcElec(montage,varargin)
 % align the MRI (fif file) with the specified montage
-% OVERWRITES Axx_c001.fiff with the biosemi electrode locations
-% e.g. alignToMrcElec('biosemi128')
+% OVERWRITES Axx_c001.fiff 
+% e.g. alignToMrcElec('EGI128')
+
+if ~exist('mne_read_forward_solution','file')
+    addpath /Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork/external/mne
+end
 
 if ~isempty(varargin)
     plotElec = varargin{1}; % 1 for plotting the electrodes fitting
@@ -91,6 +95,7 @@ for iSubj = 1:length(subjectList)
         figure;hold on;
         scatter3(elocTrans(:,1),elocTrans(:,2),elocTrans(:,3))
         scatter3(fiffEloc(:,1),fiffEloc(:,2),fiffEloc(:,3),'filled')
+%         scatter3(elocTrans(elecIdx,1),elocTrans(elecIdx,2),elocTrans(elecIdx,3))
 %         scatter3(elocTrans(1,1),elocTrans(1,2),elocTrans(1,3),'filled') %Cz biosemi
     end
     fiff_write_evoked([fileDIR 'Axx_c001.fif'],fiffEvoked);
