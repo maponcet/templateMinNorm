@@ -1,52 +1,21 @@
 clearvars
+% plot source loc results for real data (Lim) after bootstraping
 
-load('simulOutput2/realData100.mat')
-betaAverageAll = betaAverage;
-retrievePlosMeanAll = retrievePlosMean;
-retrieveWholeMeanAll = retrieveWholeMean;
-retrievePlosAll = retrievePlos;
-retrieveWholeAll = retrieveWhole;
+load('realDataOutput/realDataBootstrapTemplates.mat')
+load('realDataOutput/realDataBootstrapIndFwd.mat')
+load('realDataOutput/realDataBootstrapLasso.mat')
+load('realDataOutput/timeline.mat')
 
-load('simulOutput2/realData200.mat')
-betaAverageAll = [betaAverageAll; betaAveragePCA];
-retrievePlosMeanAll = [retrievePlosMeanAll; retrievePlosMean];
-retrieveWholeMeanAll = [retrieveWholeMeanAll; retrieveWholeMean];
-retrievePlosAll = [retrievePlosAll; retrievePlos];
-retrieveWholeAll = [retrieveWholeAll; retrieveWhole];
-
-load('simulOutput2/realData300.mat')
-betaAverageAll = [betaAverageAll; betaAveragePCA];
-retrievePlosMeanAll = [retrievePlosMeanAll; retrievePlosMean];
-retrieveWholeMeanAll = [retrieveWholeMeanAll; retrieveWholeMean];
-retrievePlosAll = [retrievePlosAll; retrievePlos];
-retrieveWholeAll = [retrieveWholeAll; retrieveWhole];
-
-load('simulOutput2/realData400.mat')
-betaAverageAll = [betaAverageAll; betaAveragePCA];
-retrievePlosMeanAll = [retrievePlosMeanAll; retrievePlosMean];
-retrieveWholeMeanAll = [retrieveWholeMeanAll; retrieveWholeMean];
-retrievePlosAll = [retrievePlosAll; retrievePlos];
-retrieveWholeAll = [retrieveWholeAll; retrieveWhole];
-
-load('simulOutput2/realData500.mat')
-betaAverageAll = [betaAverageAll; betaAveragePCA];
-retrievePlosMeanAll = [retrievePlosMeanAll; retrievePlosMean];
-retrieveWholeMeanAll = [retrieveWholeMeanAll; retrieveWholeMean];
-retrievePlosAll = [retrievePlosAll; retrievePlos];
-retrieveWholeAll = [retrieveWholeAll; retrieveWhole];
-
-load('simulOutput2/realDataLasso.mat')
 % plot different outputs in separate line
-load('simulOutput2/timeline.mat')
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
-count = 1;totBoot = 500;plotMod=4;
+count = 1;plotMod=2;
 figure;set(gcf,'position',[10,10,2400,1000])
 color = {'r','b'};
 for oo=1:plotMod
     if oo==1
-        data = betaAverageAll;tname = 'Template';
+        data = betaTemplates;tname = 'Template';
     elseif oo==2
         data = retrieveWholeMeanAll;tname = 'Individual';
     elseif oo==3
@@ -85,6 +54,7 @@ for oo=1:plotMod
     title([tname tt(1:end-2)])
 end
 legend('left')
-saveas(gcf,['figures/realDataAll'],'png')
-saveas(gcf,['figures/realDataAll' ],'fig')
-print(gcf,['figures/realDataAll' ],'-depsc')
+saveas(gcf,'figures/realDataAllnew','png')
+saveas(gcf,'figures/realDataAllnew' ,'fig')
+print(gcf,'figures/realDataAllnew' ,'-depsc')
+

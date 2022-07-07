@@ -1,12 +1,12 @@
 clearvars;close all;
 % Retrieve sources using real data from Lim 2017 using the Lasso method
+addpath(genpath([pwd filesep 'subfunctions']))
 
 lowPassNF1 = 1; % filter 1 or not 0
 numFq2keep = 5; % nb of harmonics to keep in the signal
-totBoot = 500; %500 or 0 for no bootstap
+totBoot = 500; %500 or 1 for the 9 sbj
 numComponentsEEG = 5; % Nb of principal components for the EEG
 numComponents = 3; % Nb of principal components for the group lasso
-addpath(genpath([pwd filesep 'subfunctions']))
 nLambdaRidge = 50;
 nLambda = 30;
 alphaVal = 1.0817e4;
@@ -23,7 +23,13 @@ numROIs = length(listROIs);
 for bb=1:totBoot
     
     if mod(bb,10)==0;fprintf('boot nb %d',bb);end
-    pickN = randi(numSubs,1,numSubs);
+    
+    if totBoot==1
+        pickN = 1:numSubs;
+    else
+%         pickN = randi(numSubs,1,numSubs);
+        pickN = sampleN(bb,:);
+    end
     stackedForwards = [];fwdMatrix = [];fullFwd={};roiIdx={};xList={};vList={};
 
 %% Load forwards
@@ -65,6 +71,10 @@ for iSub=1:numSubs
 end
 t = 0:Axx.dTms:(Axx.nT-1)*Axx.dTms;
         
+%%% Re-ref data to average
+for iSub=1:numSubs
+    Y(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
+end
 
 %%  GENERATE X AND V
 X = []; V = [];
@@ -151,21 +161,20 @@ roiActivityMean(bb,:,:) = mean(roiActivity,3);
 roiActivitySum(bb,:,:) = sum(roiActivity,3);
 sampleN(bb,:)=pickN;
 
-% %% min-norm
-% [betaMinNorm, ~, lambdaMinNorm] = minimum_norm(stackedForwards, Ylo, nLambdaRidge);
-% for iSub = 1:numSubs
-%     range = cell2mat(arrayfun(@(x)  numel(roiIdx{iSub}{x}),1:numROIs,'uni',false));
-%     range = [0 cumsum(range)];
-%     tempMinNorm = betaMinNorm(ridgeRange(iSub)+1:ridgeRange(s+1), :);
-%     regionActivityMinNorm(:,:,iSub) = cell2mat(arrayfun(@(x) mean(tempMinNorm(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-% end
 
 end % end bootstrap
 
-save('simulOutput2/realDataLasso.mat','sampleN','roiActivityMean','roiActivitySum')
+if totBoot==1
+    betaLasso = mean(roiActivity,3);
+    unstackedYhatLASSO = reshape(YhatLASSO,128,numSubs,780);
+    reLasso = squeeze(mean(unstackedYhatLASSO,2));
+    save('realDataOutput/realDataLasso.mat','betaLasso','YhatLASSO','unstackedYhatLASSO','reLasso')
+else
+    save('realDataOutput/realDataBootstrapLasso.mat','sampleN','roiActivityMean','roiActivitySum')
+end
 
 %% Plot ROI activity over time for multiple repeats with CI
-
+if totBoot>1
 % plot different outputs in separate line
 count = 1;
 figure;set(gcf,'position',[10,10,2400,200])
@@ -200,4 +209,4 @@ legend('left')
 saveas(gcf,['figures/realDataLasso'],'png')
 saveas(gcf,['figures/realDataLasso' ],'fig')
 print(gcf,['figures/realDataLasso' ],'-depsc')
-
+end
