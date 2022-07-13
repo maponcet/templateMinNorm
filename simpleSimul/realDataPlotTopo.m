@@ -2,8 +2,9 @@
 %%% topography 250 ms (as in Lim)
 load('realDataOutput/realData.mat')
 load('realDataOutput/realDataLasso.mat')
+load('realDataOutput/timeline.mat')
 
-timeToPlot = 196; % =250ms
+timeToPlot = find(round(t)==250); % =250ms
 addpath('/Users/marleneponcet/Documents/Git/ssvepTesting/biosemiUpdated/')
 if ~exist('ft_prepare_layout','file')
     addpath /Users/marleneponcet/Documents/Git/fieldtrip-aleslab-fork/

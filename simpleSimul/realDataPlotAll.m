@@ -10,7 +10,7 @@ load('realDataOutput/timeline.mat')
 listROIs = {'V1-L', 'V1-R', 'V2V-L', 'V2V-R', 'V2D-L', 'V2D-R', ...
     'V3V-L','V3V-R', 'V3D-L', 'V3D-R', 'V4-L', 'V4-R', 'V3A-L', 'V3A-R',...
     'LOC-L', 'LOC-R', 'MT-L', 'MT-R'};
-count = 1;plotMod=2;
+count = 1;plotMod=4;
 figure;set(gcf,'position',[10,10,2400,1000])
 color = {'r','b'};
 for oo=1:plotMod

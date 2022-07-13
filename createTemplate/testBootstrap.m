@@ -28,7 +28,7 @@ setOfData = rand(1,100,1)*10+5;
 for iboot=1:1000
     for bb=1:100
         bootDraw = datasample(setOfData,bb);
-        randomDraw = rand(1,100,1)*10+5;
+        randomDraw = rand(1,bb)*10+5;
         percErrSet(bb,iboot) = (mean(bootDraw) - mean(setOfData)).^2 / mean(setOfData).^2; 
         percErrRand(bb,iboot) = (mean(randomDraw) - mean(setOfData)).^2 / mean(setOfData).^2; 
     end
@@ -57,19 +57,45 @@ legend('var','std','rand var','rand std','1/sqrt(N)')
 
 %%%% Different mean
 % total error = bias + variance. bias is constant while variance decreases
-% by increasing number of samples. If big bias then error dominated by
-% bias, if same mean then dominated by variance [?]
+% by increasing number of samples. If big bias (ie between 2 means) then 
+% error dominated by bias, if same mean then dominated by variance. So
+% adding more sbj does not make much difference after 50. There might be a
+% bias due to age, ethnicity etc. but as there would be in any expt.
 setOfData = rand(1,100,1)*10+5;
 for iboot=1:1000
     for bb=1:100
         bootDraw = datasample(setOfData,bb);
-        randomDraw = rand(1,100,1)*10+5;
+        randomDraw = rand(1,bb)*20+5;
         percErrSet(bb,iboot) = (mean(bootDraw) - mean(setOfData)).^2 / mean(setOfData).^2; 
         percErrRand(bb,iboot) = (mean(randomDraw) - mean(setOfData)).^2 / mean(setOfData).^2; 
     end
 end
 % change in percent error
-figure(3); clf 
+figure; clf 
+loglog(mean(percErrSet,2))
+hold on;
+loglog(mean(sqrt(percErrSet),2))
+loglog(mean(percErrRand,2))
+loglog(mean(sqrt(percErrRand),2))
+loglog(1./sqrt(1:100))
+legend('square error','RMS error','rand square error','rand RMS error','1/sqrt(N)')
+title('diff set: percent error')
+
+
+
+
+%%%% add one dim for electrodes (3 elec)
+setOfDataElec = rand(100,3)*10+5;
+for iboot=1:1000
+    for bb=1:100
+        bootDraw = datasample(setOfDataElec,bb); % resample sbj keeping elec consistent with sbj
+        randomDraw = rand(bb,3)*10+5;
+        percErrSet(bb,iboot) = (mean(bootDraw) - mean(setOfDataElec)).^2 / mean(setOfDataElec).^2; 
+        percErrRand(bb,iboot) = (mean(randomDraw) - mean(setOfDataElec)).^2 / mean(setOfDataElec).^2; 
+    end
+end
+% change in percent error
+figure; clf 
 loglog(mean(percErrSet,2))
 hold on;
 loglog(mean(sqrt(percErrSet),2))
