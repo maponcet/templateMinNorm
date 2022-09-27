@@ -2,6 +2,9 @@ function makeFwd(projectName)
 % create forward models and .mat files with fwdMatrix and roiInfo 
 % from the Axx_c001.fif files (creates skeri0001-fwd.fif, -sph-fwd)
 % e.g. makeFwd('EGI128')
+% setpref('mrLASSO','scalpFileDir','/Volumes/Amrutam/Marlene/JUSTIN/avROImap/PlosOne/github-archive/datafiles/anatomy');
+setpref('mrCurrent','AnatomyFolder','/Volumes/FinDesFaims/anatomy')
+setpref('freesurfer','SUBJECTS_DIR','/Volumes/FinDesFaims/anatomy/FREESURFER_SUBS/')
 
 % addpath if needed
 if ~exist('prepareInversesForMrc','file')
@@ -32,7 +35,7 @@ for ss=1:length(sbjList)
     
     anatDir = getpref('mrCurrent','AnatomyFolder');
     roiDir  = fullfile(anatDir,sbjList(ss).name,'Standard','meshes','ROIs');
-    roiInfo = getRoisByType(roiDir,'func');
+    roiInfo = getRoisByType(roiDir,'all'); % 'func', 'anat', 'all'
     
     outputFilename=fullfile(['/Users/marleneponcet/Documents/data/skeriDATA/forward' projectName],['forwardAndRois' projectName '-' sbjList(ss).name '.mat']);
     save(outputFilename,'fwdMatrix','roiInfo');
