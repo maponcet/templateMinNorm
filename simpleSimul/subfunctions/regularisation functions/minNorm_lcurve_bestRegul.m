@@ -2,6 +2,7 @@ function [beta, betaCurv, betaBest, lambda, lambdaCurv, lambdaBest, ...
     lambdaGridMinNorm] = minNorm_lcurve_bestRegul( G , b, source)
 % beta using lambdas computed from corner of lcfun (beta), curvature
 % (betaCurv), best lambda from min MSE (betaBest)
+% betaCurv is the output of minNormFast_lcurve = prefered 
 
 [u,s,v] = csvd(G);
 

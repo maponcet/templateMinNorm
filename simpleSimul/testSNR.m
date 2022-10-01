@@ -37,4 +37,4 @@ mean(cc)
 
 % noise_var(k) = 1/SNR_lin * (0.5 * variance_m + rand * variance_m)
 % adds equivalent to 1*variance of the signal scales by the SNR 
-% since 0.5*rand = 1 on average. 
+% since 0.5+rand = 1 on average. 
