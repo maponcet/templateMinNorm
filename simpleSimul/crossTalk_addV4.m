@@ -159,36 +159,3 @@ save(['simulOutput/crossTalkV4N' num2str(SNRlevel(nn)) '.mat'],'listROIs',...
 %     'crossTalkNormTemplate','crossTalkNormWhole','crossTalkNormROI','crossTalkNormROIin','crossTalkNormTemplateBest');
 end        
    
-% figure;
-% subplot(2,3,1);
-% imagesc(squeeze(mean(crossTalkNormTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))  
-% ylabel('seedArea');xlabel('predictArea')
-% title('templateBased')
-% subplot(2,3,2);imagesc(squeeze(mean(crossTalkNormWhole(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
-% ylabel('seedArea');xlabel('predictArea')
-% title('Whole MinNorm')
-% subplot(2,3,3);imagesc(squeeze(mean(crossTalkNormROI(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
-% ylabel('seedArea');xlabel('predictArea')
-% title('ROI MinNorm')
-% subplot(2,3,4);imagesc(squeeze(mean(crossTalkNormROIin(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
-% ylabel('seedArea');xlabel('predictArea')
-% title('Oracle')
-% subplot(2,3,5);imagesc(squeeze(mean(crossTalkNormTemplateBest(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));colorbar;%caxis([0 1])
-% set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))   
-% set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))   
-% ylabel('seedArea');xlabel('predictArea')
-% title('template best reg param')
-% subplot(2,3,6);colorbar
-% colorcet('grey','reverse',1);
-% set(gcf,'position',[100,100,1500,1000])
-% saveas(gcf,['figures' filesep 'crossTalk' ],'png')
-% saveas(gcf,['figures' filesep 'crossTalk' ],'fig')
-% saveas(gcf,['figures' filesep 'crossTalk' ],'eps')
