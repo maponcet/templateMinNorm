@@ -5,13 +5,13 @@ clearvars;close all;
 % source is 1 (step, not ERP; set at 1, not random)
 
 addpath(genpath([pwd filesep 'subfunctions']))
-dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128/';
 dirList = dir([dataPath 'forward*']);
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-noiseLevel = 200; 
+noiseLevel = [1 10 200]; 
 nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
 
 % nbSbjToInclude =[2 8 20 50];
@@ -19,10 +19,13 @@ numSubs = 50;
 
 totBoot = 30;
 
+for snr=1:length(noiseLevel)
+    noise = noiseLevel(snr);
+    
 for totROI=1:numROIs/2
     
     for repBoot=1:totBoot
-        fprintf('ROI%d bootstrap %d\n',totROI,repBoot)
+        fprintf('ROI%d bootstrap %d SNR %d\n',totROI,repBoot,noise)
         % list of random sbj with replacement
         listSub = randi(length(dirList),numSubs,1);
         
@@ -54,21 +57,19 @@ for totROI=1:numROIs/2
         % find the ROI index corresponding to the activeROIs
         ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
         
-        timeBase = 1:10;
-        winERP = 11:20;
         srcERP = zeros(numROIs,20);
-        srcERP(ac_sources,winERP) = 1;    
+        srcERP(ac_sources,:) = 1;    
         
         %%% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj
         % (using individual fwd model)
-        Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y = zeros(numSubs,size(fullFwd{1},1),size(srcERP,2));
         Y_noise = Y;
-        Y_avg = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y_avg = zeros(numSubs,size(fullFwd{1},1),size(srcERP,2));
         
         for iSub=1:numSubs
             % initialise matrix of source activity
-            sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
+            sourceData = zeros(size(fullFwd{iSub},2) , size(srcERP,2));
             for ss=1:length(ac_sources)
                 % note that if there is overlapping index (same idx for 2
                 % ROIs), the value in sourceData will be of the latest
@@ -76,13 +77,16 @@ for totROI=1:numROIs/2
                 sourceData(idxROIfwd{iSub,ac_sources(ss)},:) = repmat(srcERP(ac_sources(ss),:),length(idxROIfwd{iSub,ac_sources(ss)}),1);
             end
             y_stim = fullFwd{iSub} * sourceData;
-            % add noise
-            [noisy_data] = add_ERPnoise_with_SNR( y_stim , noiseLevel,winERP );
-            % to keep the same SNR for the 2 Y, need to compute noise for
-            % the 2 Y separately as it is based on the variance of the signal
+            % add gaussian noise on electrodes
+            sig = rms(y_stim(:)); % get amount of signal
+            noisy_data = sig/sqrt(noise) * randn(size(y_stim,1),size(y_stim,2));
             Y(iSub,:,:) = y_stim + noisy_data;
+
+%             % check SNR
+%             allSig = Y(iSub,:,:);
+%             (rms(allSig(:))/rms(noisy_data(:)))^2 - 1
         end
-        
+
         %%% Use average reference for centering Y
         for iSub=1:numSubs
             Y_avg(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
@@ -134,7 +138,6 @@ for totROI=1:numROIs/2
         simulBilat(repBoot,totROI).listSub = listSub;
         simulBilat(repBoot,totROI).activeROIs = activeROIs ;
         simulBilat(repBoot,totROI).activeSources = ac_sources ;
-        simulBilat(repBoot,totROI).winERP = winERP;
         simulBilat(repBoot,totROI).srcERP = srcERP;
         simulBilat(repBoot,totROI).data = Y_avg;
         simulBilat(repBoot,totROI).beta(1,:,:) = betaAverage;
@@ -147,5 +150,6 @@ for totROI=1:numROIs/2
     end % boot
 end % nb of ROI
 
-save(['simulOutput' filesep 'simulStepBilat.mat'],'simulBilat','-v7.3')
+save(['simulOutput' filesep 'simulStepBilatSNR' num2str(noise) '.mat'],'simulBilat')
 
+end
