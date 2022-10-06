@@ -516,7 +516,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % crosstalk with another active ROI
+% V4L = 6 : listROIs([1:2:18 2:2:18])
 clearvars;close all
+load('averageMap50Sum.mat')
 SNRlevel = [1 10 200];
 
 for nn=1:length(SNRlevel)
@@ -530,18 +532,26 @@ for nn=1:length(SNRlevel)
     % plot
     subplot(2,2,1);
     imagesc(squeeze(mean(crossTalkNormTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square;%caxis([0 1])
+    set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))
+    set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))
     title('V1+')
     % predict sum for V1-L
     subplot(2,2,2);imagesc((single(1,:) + single) ./ max(single(1,:) + single));axis square
+    set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))
+    set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))
     title('predict V1+')
     % load 2 ROI with V4
     load (['simulOutput/crossTalk/crossTalkV4N' num2str(SNRlevel(nn)) '.mat']); %1 10 200
     singleV4 = squeeze(mean(crossTalkNormTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18])));
     subplot(2,2,3);imagesc(squeeze(mean(crossTalkNormTemplate(:,[1:2:18 2:2:18],[1:2:18 2:2:18]))));axis square;%caxis([0 1])
+    set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))
+    set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))
     title('V4+')
     % predict sum for V4-L
-    subplot(2,2,4);    imagesc((singleV4(11,:) + singleV4) ./ max(singleV4(11,:) + singleV4));axis square
+    subplot(2,2,4);    imagesc((singleV4(6,:) + singleV4) ./ max(singleV4(6,:) + singleV4));axis square
     title('predict V4+')
+    set(gca, 'XTick',1:18, 'XTickLabel',listROIs([1:2:18 2:2:18]))
+    set(gca, 'YTick',1:18, 'YTickLabel',listROIs([1:2:18 2:2:18]))
     colorcet('grey','reverse',1);
     saveas(gcf,['figures' filesep 'crossTalkAddSNR' num2str(SNRlevel(nn))],'png')
 end
