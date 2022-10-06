@@ -21,12 +21,14 @@ noiseERP = noise(:,timeWin);
 aa(rep) = (rms(simul(:))/rms(noise(:)))^2 - 1;
 bb(rep)= (rms(erpWin(:))/rms(preWin(:)))^2 -1;
 cc(rep)= (sum(sum(signal(:).^2+noise(:).^2)))/sum(sum(noise(:).^2)) - 1;
+dd(rep) = (rms(signal(:))/rms(noise(:)))^2 ;
 
 end
 
 mean(aa)
 mean(bb)
 mean(cc)
+mean(dd)
 
 % in add_ERPnoise_with_SNR, when "+ rand * variance_m" is there,  bb = SNR
 % but aa & cc are half. without the randomisation part, aa = SNR and bb is
