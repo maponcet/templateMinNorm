@@ -1,6 +1,6 @@
 % count the nb of overlapping 
 
-dataPath = '/Volumes/Amrutam/Marlene/JUSTIN/skeriDATA/forwardAllEGI/';
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128/';
 dirList = dir([dataPath 'forward*']);
 nbSbj = length(dirList);
 

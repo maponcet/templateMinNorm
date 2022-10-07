@@ -1,8 +1,13 @@
 clearvars;close all;
+% same prog as simulV1MT but noise is added on forward models = correlated
+% brain noise instead of adding it on the electrodes
 % simulate ERP from V1, MT, V1+MT in 3 different time windows
-% retrieve the sources using different methods (template, ROI, whole brain)
+% retrieve the sources using template method 
 % Each simulation uses a different set of sbj and ERP but the same one is
 % tested across different levels of noise and number of sbj
+% Noise is simulated either on the electrodes (as earlier) or on the
+% forward of each subject (which ends up with correlated noise = brain
+% noise)
 
 % 1-45 = baseline
 % 46-90 = V1
@@ -80,7 +85,9 @@ for repBoot=1:totBoot
             % use the generated sources to simulate scalp activity for each sbj
             % (using individual fwd model)
             Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+            YbrainNoise = Y;
             Y_avg = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+            Yb_avg = Y_avg;
             
             for iSub=1:numSubs
                 % initialise matrix of source activity
@@ -94,44 +101,53 @@ for repBoot=1:totBoot
                 % multiply fwd (128*20484) with the activated idx over time
                 % (sourceData of 20484*90) and obtain Y elec x time
                 y_stim = fullFwd{iSub} * sourceData;
-                % add noise
+                % add noise to the fwd (= correlated brain noise)
+                noiseGauss = 1/sqrt(2*noiseLevel) * randn(size(fullFwd{iSub},2),size(y_stim,2));
+                brainNoise = fullFwd{iSub} * noiseGauss; 
+                YbrainNoise(iSub,:,:) = y_stim + brainNoise;
+
+                 % add noise to the electrodes
                 [noisy_data] = add_ERPnoise_with_SNR( y_stim , noiseLevel,winERP );
                 % to keep the same SNR for the 2 Y, need to compute noise for
                 % the 2 Y separately as it is based on the variance of the signal
                 Y(iSub,:,:) = y_stim + noisy_data;
+                
             end
-            
+           
             %%% Use average reference for centering Y
             %%% that is: substract the average electrode activity at each time point
             % this is done by bsxfun which applies element-wise substraction (the 90
             % averages across electrodes) - useless?
             for iSub=1:numSubs
                 Y_avg(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
+                Yb_avg(iSub,:,:) = bsxfun(@minus,squeeze(YbrainNoise(iSub,:,:)), mean(squeeze(YbrainNoise(iSub,:,:))));
             end
  
             %% compute minimum norm
             regionWhole = zeros(numSubs,numROIs,length(srcERP));
             regionROI = regionWhole;
-            regionROILC = regionWhole;
-            regionWholeLC = regionWhole;
+%             regionROILC = regionWhole;
+%             regionWholeLC = regionWhole;
             betaROIin = regionWhole;
-            betaROIinLC = regionWhole;
+%             betaROIinLC = regionWhole;
             
             % min_norm on average data: get beta values for each ROI over time
-            [betaLCFUN, betaAverage, betaBest, lambda, lambdaCurv, lambdaBest, ...
-                lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)),srcERP);
-            
-            indFwdROI_noise=[roiFwd{iSub,:}];
-            indData_noise=squeeze(Y_avg(iSub,:,:));
-            indFwd_noise=fullFwd{iSub};
+            [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+%             [betaAverageB, lambdaB] = minNormFast_lcurve(avMap, squeeze(mean(Yb_avg,1)));
+            [betaLCFUN, betaAverageB, betaBest, lambdaB, lambdaCurv, lambdaBest, ...
+                lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Yb_avg,1)),srcERP);
+
+%             indFwdROI_noise=[roiFwd{iSub,:}];
+%             indData_noise=squeeze(Y_avg(iSub,:,:));
+%             indFwd_noise=fullFwd{iSub};
             
             for iSub=1:numSubs
                 % regular minimum_norm: on the 20484 indexes per sbj
-                [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaWholeLC, lambdaWholeLC] = minNormFast_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
+                [betaWhole,lambdaWhole] = minNormFast(fullFwd{iSub}, squeeze(Yb_avg(iSub,:,:)), nLambdaRidge);
+%                 [betaWholeLC, lambdaWholeLC] = minNormFast_lcurve(fullFwd{iSub}, squeeze(Y_avg(iSub,:,:)));
                 
-                [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaROILC, lambdaROILC] = minNormFast_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));
+                [betaROI, lambdaROI] = minNormFast([roiFwd{iSub,:}], squeeze(Yb_avg(iSub,:,:)), nLambdaRidge);
+%                 [betaROILC, lambdaROILC] = minNormFast_lcurve([roiFwd{iSub,:}], squeeze(Y_avg(iSub,:,:)));
                 
                 % beta values are for the indexes, but needs it per ROI
                 % get the number of indexes per ROI for this subj
@@ -140,25 +156,25 @@ for repBoot=1:totBoot
                 range = [0 cumsum(rangeROI)]; % cumulative sum of elements
                 % SUM (not average) the beta values per ROI (=across the indexes)
                 regionROI(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROI(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
-                regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
+%                 regionROILC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaROILC(range(x)+1:range(x+1), :)),1:numROIs,'uni',false)');
                 
                 % need to find the indexes for whole brain -> use idxROIfwd
                 % (no need to get the range)
                 regionWhole(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWhole(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
-                regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
+%                 regionWholeLC(iSub,:,:) = cell2mat(arrayfun(@(x) sum(betaWholeLC(idxROIfwd{iSub,x},:)),1:numROIs,'uni',false)');
                 
                 % feed ROI per sbj instead of mesh = "oracle" (best possible recovery)
                 sbjROI = cell2mat(arrayfun(@(x) sum(fullFwd{iSub}(:,idxROIfwd{iSub,x}),2),1:numROIs,'uni',false));
-                [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Y_avg(iSub,:,:)), nLambdaRidge);
-                [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
+                [betaROIin(iSub,:,:), lambdaGridMinNormROIin] = minNormFast(sbjROI, squeeze(Yb_avg(iSub,:,:)), nLambdaRidge);
+%                 [betaROIinLC(iSub,:,:), lambdaGridMinNormROIinLC] = minNormFast_lcurve(sbjROI, squeeze(Y_avg(iSub,:,:)));
             end
             % average across subj
             retrieveWhole = squeeze(mean(regionWhole,1));
             retrieveROI = squeeze(mean(regionROI,1));
             retrieveROIin = squeeze(mean(betaROIin,1));
-            retrieveWholeLC = squeeze(mean(regionWholeLC,1));
-            retrieveROILC = squeeze(mean(regionROILC,1));
-            retrieveROIinLC = squeeze(mean(betaROIinLC,1));
+%             retrieveWholeLC = squeeze(mean(regionWholeLC,1));
+%             retrieveROILC = squeeze(mean(regionROILC,1));
+%             retrieveROIinLC = squeeze(mean(betaROIinLC,1));
             
             % save simulation
             simulERP(totSbj,level).listROIs = listROIs;
@@ -166,20 +182,62 @@ for repBoot=1:totBoot
             simulERP(totSbj,level).winERP = winERP;
             simulERP(totSbj,level).srcERP = srcERP;
             simulERP(totSbj,level).data = Y_avg;
+            simulERP(totSbj,level).dataCorrelNoise = Yb_avg;
             simulERP(totSbj,level).noise = SNRlevel(level);
             simulERP(totSbj,level).beta(1,:,:) = betaAverage;
-            simulERP(totSbj,level).beta(2,:,:) = retrieveWhole;
-            simulERP(totSbj,level).beta(3,:,:) = retrieveROI;
-            simulERP(totSbj,level).beta(4,:,:) = retrieveROIin;
-            simulERP(totSbj,level).beta(5,:,:) = retrieveWholeLC;
-            simulERP(totSbj,level).beta(6,:,:) = retrieveROILC;
-            simulERP(totSbj,level).beta(7,:,:) = retrieveROIinLC;
-            simulERP(totSbj,level).beta(8,:,:) = betaBest;
+            simulERP(totSbj,level).beta(2,:,:) = betaAverageB;
+            simulERP(totSbj,level).beta(3,:,:) = retrieveWhole;
+            simulERP(totSbj,level).beta(4,:,:) = retrieveROI;
+            simulERP(totSbj,level).beta(5,:,:) = retrieveROIin;
+            simulERP(totSbj,level).beta(6,:,:) = betaBest;
+%             simulERP(repBoot,totSbj,level).beta(6,:,:) = retrieveWholeLC;
+%             simulERP(repBoot,totSbj,level).beta(7,:,:) = retrieveROILC;
+%             simulERP(repBoot,totSbj,level).beta(8,:,:) = retrieveROIinLC;
             
         end % noise
         
     end % sbj
-    save(['simulOutput/simulV1MT/simulV1MToutput' num2str(repBoot) '.mat'],'simulERP')
+    save(['simulOutput/brainNoise/simulV1MTbrainNoise' num2str(repBoot) '.mat'],simulERP)
 
 end % boot
 
+
+
+
+% nbModel = 2;
+% % initialise variables
+% aucAve = zeros(size(simulERP,1),size(simulERP,2),size(simulERP,3),nbModel);
+% energyAve = aucAve;
+% mseAveNorm = aucAve;
+% 
+% for model=1:nbModel
+% for repBoot=1:size(simulERP,1)
+%     for totSbj=1:size(simulERP,2)
+%         for level=1:size(simulERP,3)            
+%         [aucAve(repBoot,totSbj,level,model), energyAve(repBoot,totSbj,level,model),mseAveNorm(repBoot,totSbj,level,model)] = ...
+%             computeMetrics(squeeze(simulERP(repBoot,totSbj,level).beta(model,:,winERP)),simulERP(repBoot,totSbj,level).srcERP(:,winERP));        
+%         end
+%     end
+% end
+% end
+% 
+% %%% plot metrics
+% modName = {'electrodeNoise','brainNoise'};
+% figure;hold on
+% for model=1:nbModel
+% for ss=1:size(simulERP,2)
+%     subplot(3,nbModel,model);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,ss,:,model))),squeeze(std(aucAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC')
+%     title(modName(model))
+%     subplot(3,nbModel,model+nbModel);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,ss,:,model))),squeeze(std(energyAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
+%     subplot(3,nbModel,model+nbModel*2);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:,model))),squeeze(std(mseAveNorm(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
+% end
+% end
+% legend('N=2','N=8','N=20','N=50')
+% set(gcf,'position',[100 100 500 700])
+% saveas(gcf,['figures' filesep 'brainNoiseV1MT'],'png')

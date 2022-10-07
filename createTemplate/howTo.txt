@@ -1,6 +1,7 @@
 HOW TO create a template
 
-0. copy original skeri folder (same path) and rename with skeriMontageName
+0. copy original skeri folder (same path) and rename with skeriMontageName 
+(e.g. 'skeriEGI128')
 
 1. run alignToMrcElec(EEGsystem) - e.g. alignToMrcElec('EGI128') 
 this function calls readElecLocs.m which needs to include the info abt

@@ -1,5 +1,6 @@
 % simulate and retrieve ERP sources from 2 bilateral sources (tot ROIs = 4)
-% matrices are big so just have 1 ERP window instead of 3
+% matrices are big so just have 1 ERP window instead of 3: baseline 1:45,
+% ERP (all sources simultaneously) = 46:90
 
 clearvars;close all;
 
@@ -17,15 +18,16 @@ mm(4).dirList = dir([mm(4).dataPath 'forward*']);
 nbModels = length(mm);
 
 dirModel = '/Users/marleneponcet/Documents/Git/templateMinNorm/createTemplate/templates/';
-load([dirModel 'averageMapEGI32.mat']); 
-mm(1).avMap = avMap;
-load([dirModel 'averageMapEGI64.mat']); 
-mm(2).avMap = avMap;
-load([dirModel 'averageMapEGI128.mat']); % load average map of ROIs (128 elec x 18 ROIs)
-mm(3).avMap = avMap;
-load([dirModel 'averageMapEGI256.mat']); 
-mm(4).avMap = avMap;
+load([dirModel 'template_EGI32.mat']); 
+mm(1).avMap = templates.weights;
+load([dirModel 'template_EGI64.mat']); 
+mm(2).avMap = templates.weights;
+load([dirModel 'template_EGI128.mat']); % load average map of ROIs (128 elec x 18 ROIs)
+mm(3).avMap = templates.weights;
+load([dirModel 'template_EGI256.mat']); 
+mm(4).avMap = templates.weights;
 
+listROIs = templates.listROIs;
 numROIs = length(listROIs);
 totROI = 2; % nb of active ROIs UNILATERAL
 
@@ -157,22 +159,21 @@ for repBoot=1:totBoot
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % save simulation
-        simulSys(repBoot,level,sysNb).listROIs = listROIs;
-        simulSys(repBoot,level,sysNb).listSub = listSub;
-        simulSys(repBoot,level,sysNb).winERP = winERP;
-        simulSys(repBoot,level,sysNb).srcERP = srcERP;
-        simulSys(repBoot,level,sysNb).data = Y_avg;
-        simulSys(repBoot,level,sysNb).noise = SNRlevel(level);
-        simulSys(repBoot,level,sysNb).beta(1,:,:) = betaCurv;
-        simulSys(repBoot,level,sysNb).beta(2,:,:) = retrieveWhole;
-        simulSys(repBoot,level,sysNb).beta(3,:,:) = retrieveROI;
-        simulSys(repBoot,level,sysNb).beta(4,:,:) = retrieveROIin;
-        simulSys(repBoot,level,sysNb).beta(5,:,:) = betaBest;
+        simulSys(level,sysNb).listROIs = listROIs;
+        simulSys(level,sysNb).listSub = listSub;
+        simulSys(level,sysNb).winERP = winERP;
+        simulSys(level,sysNb).srcERP = srcERP;
+        simulSys(level,sysNb).data = Y_avg;
+        simulSys(level,sysNb).noise = SNRlevel(level);
+        simulSys(level,sysNb).beta(1,:,:) = betaCurv;
+        simulSys(level,sysNb).beta(2,:,:) = retrieveWhole;
+        simulSys(level,sysNb).beta(3,:,:) = retrieveROI;
+        simulSys(level,sysNb).beta(4,:,:) = retrieveROIin;
+        simulSys(level,sysNb).beta(5,:,:) = betaBest;
     end
     end
-    
+    save(['simulOutput/compareSyst/simulSysRand' num2str(repBoot) '.mat'],'simulSys')
 end
 
-save('simulOutput/simulSysRand.mat','simulSys','-v7.3')
 
 

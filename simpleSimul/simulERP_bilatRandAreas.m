@@ -5,19 +5,19 @@ clearvars;close all;
 % sources)
 
 addpath(genpath([pwd filesep 'subfunctions']))
-dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128/';
 dirList = dir([dataPath 'forward*']);
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
 
 % some parameters
-noiseLevel = 10; % 10 times more signal than noise
+noiseLevel = 1; % 10 times more signal than noise
 nLambdaRidge = 20; % for calculating minimum_norm, reg constant, hyper param in min norm
 
 % nbSbjToInclude =[2 8 20 50];
-numSubs = 20;
+numSubs = 50;
 
-totBoot = 3;
+totBoot = 30;
 
 for totROI=1:numROIs/2
     
@@ -68,13 +68,13 @@ for totROI=1:numROIs/2
         %%% Simulate scalp activity (Y)
         % use the generated sources to simulate scalp activity for each sbj
         % (using individual fwd model)
-        Y = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y = zeros(numSubs,size(fullFwd{1},1),size(srcERP,2));
         Y_noise = Y;
-        Y_avg = zeros(numSubs,size(fullFwd{1},1),length(srcERP));
+        Y_avg = zeros(numSubs,size(fullFwd{1},1),size(srcERP,2));
         
         for iSub=1:numSubs
             % initialise matrix of source activity
-            sourceData = zeros(size(fullFwd{iSub},2) , length(srcERP));
+            sourceData = zeros(size(fullFwd{iSub},2) , size(srcERP,2));
             for ss=1:length(ac_sources)
                 % note that if there is overlapping index (same idx for 2
                 % ROIs), the value in sourceData will be of the latest
@@ -97,7 +97,8 @@ for totROI=1:numROIs/2
         
         %% compute minimum norm
         % min_norm on average data: get beta values for each ROI over time
-        [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+        [betaLcFun, betaAverage, betaBest, lambdaLcFun, lambdaCurv, lambdaBest, ...
+            lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)), srcERP);
         
         regionWhole = zeros(numSubs,numROIs,length(srcERP));
         regionROI = zeros(numSubs,numROIs,length(srcERP));
@@ -145,10 +146,11 @@ for totROI=1:numROIs/2
         simulBilat(repBoot,totROI).beta(3,:,:) = retrieveROI;
         simulBilat(repBoot,totROI).beta(4,:,:) = retrieveROIin;
         simulBilat(repBoot,totROI).beta(5,:,:) = retrieveROIinLC;
+        simulBilat(repBoot,totROI).beta(6,:,:) = betaBest;
         
         
     end % boot
 end % nb of ROI
 
-save(['simulOutput' filesep 'simulRandBilat.mat'],'simulBilat')
+save(['simulOutput' filesep 'simulERPBilat' num2str(noiseLevel) '.mat' ],'simulBilat','-v7.3')
 

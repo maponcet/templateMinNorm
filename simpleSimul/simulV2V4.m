@@ -10,7 +10,7 @@ clearvars;close all;
 % 136-180 = V2V+V4
 
 addpath(genpath([pwd filesep 'subfunctions']))
-dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardAllEGI/';
+dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128/';
 dirList = dir([dataPath 'forward*']);
 load('averageMap50Sum.mat') % load average map of ROIs (128 elec x 18 ROIs)
 numROIs = length(listROIs);
@@ -115,8 +115,9 @@ for repBoot=1:totBoot
             betaROIinLC = regionWhole;
             
             % min_norm on average data: get beta values for each ROI over time
-            [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
-            
+            [betaLCFUN, betaAverage, betaBest, lambda, lambdaCurv, lambdaBest, ...
+                lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)),srcERP);
+
             indFwdROI_noise=[roiFwd{iSub,:}];
             indData_noise=squeeze(Y_avg(iSub,:,:));
             indFwd_noise=fullFwd{iSub};
@@ -157,23 +158,25 @@ for repBoot=1:totBoot
             retrieveROIinLC = squeeze(mean(betaROIinLC,1));
             
             % save simulation
-            simulERP(repBoot,totSbj,level).listROIs = listROIs;
-            simulERP(repBoot,totSbj,level).listSub = listSub;
-            simulERP(repBoot,totSbj,level).winERP = winERP;
-            simulERP(repBoot,totSbj,level).srcERP = srcERP;
-            simulERP(repBoot,totSbj,level).data = Y_avg;
-            simulERP(repBoot,totSbj,level).noise = SNRlevel(level);
-            simulERP(repBoot,totSbj,level).beta(1,:,:) = betaAverage;
-            simulERP(repBoot,totSbj,level).beta(2,:,:) = retrieveWhole;
-            simulERP(repBoot,totSbj,level).beta(3,:,:) = retrieveROI;
-            simulERP(repBoot,totSbj,level).beta(4,:,:) = retrieveROIin;
-            simulERP(repBoot,totSbj,level).beta(5,:,:) = retrieveWholeLC;
-            simulERP(repBoot,totSbj,level).beta(6,:,:) = retrieveROILC;
-            simulERP(repBoot,totSbj,level).beta(7,:,:) = retrieveROIinLC;
+            simulERP(totSbj,level).listROIs = listROIs;
+            simulERP(totSbj,level).listSub = listSub;
+            simulERP(totSbj,level).winERP = winERP;
+            simulERP(totSbj,level).srcERP = srcERP;
+            simulERP(totSbj,level).data = Y_avg;
+            simulERP(totSbj,level).noise = SNRlevel(level);
+            simulERP(totSbj,level).beta(1,:,:) = betaAverage;
+            simulERP(totSbj,level).beta(2,:,:) = retrieveWhole;
+            simulERP(totSbj,level).beta(3,:,:) = retrieveROI;
+            simulERP(totSbj,level).beta(4,:,:) = retrieveROIin;
+            simulERP(totSbj,level).beta(5,:,:) = retrieveWholeLC;
+            simulERP(totSbj,level).beta(6,:,:) = retrieveROILC;
+            simulERP(totSbj,level).beta(7,:,:) = retrieveROIinLC;
+            simulERP(totSbj,level).beta(8,:,:) = betaBest;
             
         end % noise
         
     end % sbj
+    save(['simulOutput/simulV2V4/simulV2V4output' num2str(repBoot) '.mat'],'simulERP')
+
 end % boot
 
-save('simulOutput/simulV2V4output.mat','simulERP','-v7.3')

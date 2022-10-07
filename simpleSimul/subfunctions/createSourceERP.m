@@ -4,6 +4,9 @@ function sourceERP = createSourceERP(numROIs,sourceROI,sameSource)
 % (indexes). Eg: sourceERP = createSourceERP(18,[1 17],[2 18]) for 18
 % sources with source 1 & 17 (V1-L & MT-L) the same as 2 & 18 (V1-R & MT-R)
 
+if nargin == 2
+    sameSource = [];
+end
 
 % time line
 x = 0 : pi / 45 : pi-pi/45; % 360 deg 
