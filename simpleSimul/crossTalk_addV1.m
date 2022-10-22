@@ -47,7 +47,7 @@ end
         
 for nn=1:length(SNRlevel)  
     noise = SNRlevel(nn);
-for seedRoi = 2:numROIs
+for seedRoi = 1:numROIs
     
     activeROIs = [{'V1-L'}, listROIs(seedRoi)];
     ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
@@ -151,7 +151,7 @@ for seedRoi = 2:numROIs
     
 end % different activated sources
 
-save(['simulOutput/crossTalkV1N' num2str(SNRlevel(nn)) '.mat'],'listROIs',...
+save(['simulOutput/crossTalk/crossTalkV1N' num2str(SNRlevel(nn)) '.mat'],'listROIs',...
     'crossTalkTemplate','crossTalkNormTemplate');
 
 % save(['simulOutput/crossTalkN' num2str(SNRlevel(nn)) '.mat'],'listROIs',...
