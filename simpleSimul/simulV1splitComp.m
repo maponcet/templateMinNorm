@@ -1,7 +1,10 @@
 clearvars;close all;
 % simulate ERP from V1v or V1d L/R and check that it recovers V1 (not other ROI)
-% pick a random source 'V1V-L','V1V-R','V1D-L','V1D-R' and see if recovers
-% in V1
+% prev function picked a random uni source 'V1V-L','V1V-R','V1D-L','V1D-R'
+% here compare bilat source in ventral vs dorsal vs all V1
+% pb is that the nb of activated sources in the fwd will be very different
+% depending on the source no? I think I get overfitting for ventral if
+% noise calculated based on ventral signal only
 
 addpath(genpath([pwd filesep 'subfunctions']))
 dataPath = '/Users/marleneponcet/Documents/data/skeriDATA/forwardEGI128_allROI/';
@@ -32,7 +35,7 @@ end
 % some parameters
 SNRlevel = [0.1 1 10 200 10000]; % 0.1 means 10 times more noise than signal, 10 means 10 times more signal than noise
 nLambdaRidge = 20; % for calculating minimum_norm, hyper param in min norm
-potentialSrc = {'V1V-L','V1V-R','V1D-L','V1D-R'};
+% potentialSrc = {'V1V-L','V1V-R','V1D-L','V1D-R'};
 
 totBoot = 30;
 
@@ -40,16 +43,24 @@ for repBoot=1:totBoot
     fprintf('bootstrap %d\n',repBoot)
 
     %% Simulate sources
-    % pick 1 unilateral source in V1
-    activeROIs = potentialSrc(randi(4,1));
+    % pick bilateral source in V1
+    activeROIs = {'V1-L','V1-R'};
+    activeROIsV = {'V1V-L','V1V-R'};
+    activeROIsD = {'V1D-L','V1D-R'};
     % find the ROI index corresponding to the activeROIs
     ac_sources = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIs{x}),1:length(activeROIs),'uni',false));
+    ac_sourcesV = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIsV{x}),1:length(activeROIsV),'uni',false));
+    ac_sourcesD = cell2mat(arrayfun(@(x) cellfind(listROIs,activeROIsD{x}),1:length(activeROIsD),'uni',false));
 
     % ERP & baseline timewindow
     timeBase = 1:45;
     winERP = 46:90;
     srcERP = zeros(numROIs,45*2); % 45*2 timepoints
-    srcERP(:,winERP) = createSourceERP(numROIs,ac_sources(1));
+    srcERPv = srcERP;srcERPd = srcERP;
+    srcERP(:,winERP) = createSourceERP(numROIs,ac_sources(1),ac_sources(2));
+    % use the same ERP for all sources
+    srcERPv([ac_sourcesV(1) ac_sourcesV(2)],:) = srcERP([1 2],:);
+    srcERPd([ac_sourcesD(1),ac_sourcesD(2)],:) = srcERP([1 2],:);
 
     % list of random sbj with replacement
     listSub = randi(nbSub,nbSub,1);
@@ -62,21 +73,30 @@ for repBoot=1:totBoot
             % (using individual fwd model)
             Y = zeros(nbSub,size(fullFwd{1},1),length(srcERP));
             Y_avg = zeros(nbSub,size(fullFwd{1},1),length(srcERP));
-            
+            Yv=Y; Yd=Y;Y_avgV=Y_avg; Y_avgD=Y_avg;
             for iSub=1:length(listSub)
                 % initialise matrix of source activity
                 sourceData = zeros(size(fullFwd{listSub(iSub)},2) , length(srcERP));
+                sourceDataV = sourceData; sourceDataD = sourceData;
                 for ss=1:length(ac_sources)
                     sourceData(idxROIfwd{listSub(iSub),ac_sources(ss)},:) = repmat(srcERP(ac_sources(ss),:),length(idxROIfwd{listSub(iSub),ac_sources(ss)}),1);
+                    sourceDataV(idxROIfwd{listSub(iSub),ac_sourcesV(ss)},:) = repmat(srcERPv(ac_sourcesV(ss),:),length(idxROIfwd{listSub(iSub),ac_sourcesV(ss)}),1);
+                    sourceDataD(idxROIfwd{listSub(iSub),ac_sourcesD(ss)},:) = repmat(srcERPd(ac_sourcesD(ss),:),length(idxROIfwd{listSub(iSub),ac_sourcesD(ss)}),1);
                 end
                 % multiply fwd (128*20484) with the activated idx over time
                 % (sourceData of 20484*90) and obtain Y elec x time
                 y_stim = fullFwd{listSub(iSub)} * sourceData;
+                y_stimV = fullFwd{listSub(iSub)} * sourceDataV;
+                y_stimD = fullFwd{listSub(iSub)} * sourceDataD;
                 % add noise
                 [noisy_data] = add_ERPnoise_with_SNR( y_stim , noiseLevel,winERP );
+                [noisy_dataV] = add_ERPnoise_with_SNR( y_stimV , noiseLevel,winERP );
+                [noisy_dataD] = add_ERPnoise_with_SNR( y_stimD , noiseLevel,winERP );
                 % to keep the same SNR for the 2 Y, need to compute noise for
                 % the 2 Y separately as it is based on the variance of the signal
                 Y(iSub,:,:) = y_stim + noisy_data;
+                Yv(iSub,:,:) = y_stimV + noisy_dataV;
+                Yd(iSub,:,:) = y_stimD + noisy_dataD;
             end        
         
             
@@ -86,6 +106,8 @@ for repBoot=1:totBoot
             % averages across electrodes) - useless?
             for iSub=1:nbSub
                 Y_avg(iSub,:,:) = bsxfun(@minus,squeeze(Y(iSub,:,:)), mean(squeeze(Y(iSub,:,:))));
+                Y_avgV(iSub,:,:) = bsxfun(@minus,squeeze(Yv(iSub,:,:)), mean(squeeze(Yv(iSub,:,:))));
+                Y_avgD(iSub,:,:) = bsxfun(@minus,squeeze(Yd(iSub,:,:)), mean(squeeze(Yd(iSub,:,:))));
             end
  
             %% compute minimum norm
@@ -97,7 +119,9 @@ for repBoot=1:totBoot
 %             betaROIinLC = regionWhole;
             
             % min_norm on average data: get beta values for each ROI over time
-            [betaAverage, lambda] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+            [betaAverage, lambda,~,~,regulOK] = minNormFast_lcurve(avMap, squeeze(mean(Y_avg,1)));
+            [betaAverageV, lambdaV,~,~,regulOKv] = minNormFast_lcurve(avMap, squeeze(mean(Y_avgV,1)));
+            [betaAverageD, lambdaD,~,~,regulOKd] = minNormFast_lcurve(avMap, squeeze(mean(Y_avgD,1)));
 %             [betaLCFUN, betaAverage, betaBest, lambda, lambdaCurv, lambdaBest, ...
 %                 lambdaGridMinNorm] = minNorm_lcurve_bestRegul(avMap, squeeze(mean(Y_avg,1)),srcERP);
             
@@ -145,9 +169,14 @@ for repBoot=1:totBoot
             simulERP(repBoot,level).listSub = listSub;
             simulERP(repBoot,level).winERP = winERP;
             simulERP(repBoot,level).srcERP = srcERP;
-            simulERP(repBoot,level).data = Y_avg;
+%             simulERP(repBoot,level).data = Y_avg;
             simulERP(repBoot,level).noise = SNRlevel(level);
             simulERP(repBoot,level).beta = betaAverage;
+            simulERP(repBoot,level).betaV = betaAverageV;
+            simulERP(repBoot,level).betaD = betaAverageD;
+            simulERP(repBoot,level).reg = regulOK;
+            simulERP(repBoot,level).regV = regulOKv;
+            simulERP(repBoot,level).regD = regulOKd;
 %             simulERP(totSbj,level).beta(2,:,:) = retrieveWhole;
 %             simulERP(totSbj,level).beta(3,:,:) = retrieveROI;
 %             simulERP(totSbj,level).beta(4,:,:) = retrieveROIin;
@@ -161,35 +190,45 @@ for repBoot=1:totBoot
 
 end % boot
 
-save('simulOutput/simulV1split.mat','simulERP')
-
-
+save('simulOutput/simulV1splitComp.mat','simulERP')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 aucAve = zeros(totBoot,length(SNRlevel));energyAve =aucAve ;mseAveNorm=aucAve;
+aucAveV = aucAve;energyAveV =aucAve ;mseAveNormV=aucAve;
+aucAveD = aucAve;energyAveD =aucAve ;mseAveNormD=aucAve;
+
 for repBoot = 1:totBoot
     for level=1:length(SNRlevel)
-        % srcERP is for subpart of V1 (ventral/dorsal) so change it to V1
-        source = zeros(18,length(winERP));
-        source(1,:) = sum(simulERP(repBoot,level).srcERP([19 21],winERP)); % left V1
-        source(2,:) = sum(simulERP(repBoot,level).srcERP([20 22],winERP)); % right V1
+        % can use the full V1 source since I used the same ERP for all
+        % sources but meed to kick out the last 4 ROIs
         [aucAve(repBoot,level), energyAve(repBoot,level),mseAveNorm(repBoot,level)] = ...
-            computeMetrics(squeeze(simulERP(repBoot,level).beta(:,winERP)),source);
+            computeMetrics(squeeze(simulERP(repBoot,level).beta(:,winERP)),simulERP(repBoot,level).srcERP(1:18,winERP));
+        [aucAveV(repBoot,level), energyAveV(repBoot,level),mseAveNormV(repBoot,level)] = ...
+            computeMetrics(squeeze(simulERP(repBoot,level).betaV(:,winERP)),simulERP(repBoot,level).srcERP(1:18,winERP));
+        [aucAveD(repBoot,level), energyAveD(repBoot,level),mseAveNormD(repBoot,level)] = ...
+            computeMetrics(squeeze(simulERP(repBoot,level).betaD(:,winERP)),simulERP(repBoot,level).srcERP(1:18,winERP));
     end
 end
 
 figure;hold on
 subplot(1,3,1);hold on;
 errorbar(log10(SNRlevel),mean(aucAve),std(aucAve),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(aucAveV),std(aucAveV),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(aucAveD),std(aucAveD),'LineWidth',2,'CapSize',0)
 xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC')
 subplot(1,3,2);hold on;
 errorbar(log10(SNRlevel),mean(energyAve),std(energyAve),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(energyAveV),std(energyAveV),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(energyAveD),std(energyAveD),'LineWidth',2,'CapSize',0)
 ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
 subplot(1,3,3);hold on;
 errorbar(log10(SNRlevel),mean(mseAveNorm),std(mseAveNorm),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(mseAveNormV),std(mseAveNormV),'LineWidth',2,'CapSize',0)
+errorbar(log10(SNRlevel),mean(mseAveNormD),std(mseAveNormD),'LineWidth',2,'CapSize',0)
 ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
+legend({'full','ventral','dorsal'})
 set(gcf,'position',[100 100 800 300])
-saveas(gcf,['figures' filesep 'splitV1'],'png')
+saveas(gcf,['figures' filesep 'splitV1Comp'],'png')
 
