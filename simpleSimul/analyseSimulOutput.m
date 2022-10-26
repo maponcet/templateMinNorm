@@ -216,6 +216,58 @@ set(gcf,'position',[100 100 1500 700])
 saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'png')
 saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'fig')
 print(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'-depsc')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% brain noise
+% do not need template electrodes so do not load it
+clearvars; close all
+nbBoot = 30;
+winERP = 46:90; 
+SNRlevel = [0.1 1 10 200 10000];
+nbSbjToInclude =[2 8 20 50];
+nbModel = 8;
+% initialise variables
+aucAve = zeros(nbBoot,length(SNRlevel),nbModel);
+energyAve = aucAve;
+mseAveNorm = aucAve;
+for repBoot = 1:nbBoot
+    % load simulation results
+    fprintf('load bootstrap %d\n',repBoot)
+    load(['simulOutput/brainNoise/simulV1MTbrainNoiseComp' num2str(repBoot) '.mat'])
+    for model=1:nbModel
+        for level=1:length(SNRlevel)
+            [aucAve(repBoot,level,model), energyAve(repBoot,level,model),mseAveNorm(repBoot,level,model)] = ...
+                computeMetrics(squeeze(simulERP(level).beta(model,:,winERP)),simulERP(level).srcERP(:,winERP));
+        end
+    end
+end
+
+%%% plot metrics
+modName = {'template','Whole','ROI','Oracle'};
+pp=1;
+figure;hold on
+for model=1:2:nbModel
+    subplot(3,4,pp);hold on;
+    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,model))),squeeze(std(aucAve(:,:,model),1)),'LineWidth',2,'CapSize',0)
+    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,model+1))),squeeze(std(aucAve(:,:,model+1),1)),'LineWidth',2,'CapSize',0)
+    xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC');
+    title(modName(pp))
+    subplot(3,4,pp+4);hold on;
+    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,model))),squeeze(std(energyAve(:,:,model),1)),'LineWidth',2,'CapSize',0)
+    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,model+1))),squeeze(std(energyAve(:,:,model+1),1)),'LineWidth',2,'CapSize',0)
+    ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
+    subplot(3,4,pp+4*2);hold on;
+    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,model))),squeeze(std(mseAveNorm(:,:,model),1)),'LineWidth',2,'CapSize',0)
+    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,model+1))),squeeze(std(mseAveNorm(:,:,model+1),1)),'LineWidth',2,'CapSize',0)
+    ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
+    pp = pp+1;
+end
+legend('uncorrelated noise','correlated noise')
+set(gcf,'position',[100 100 1200 700])
+saveas(gcf,['figures' filesep 'brainNoiseV1MT_Comp'],'png')
+saveas(gcf,['figures' filesep 'brainNoiseV1MT_Comp'],'fig')
+print(gcf,['figures' filesep 'brainNoiseV1MT_Comp'],'-depsc')
+
+
 
 
 
@@ -260,7 +312,7 @@ legend(modName([1:4 6]))
 set(gcf,'position',[100 100 1000 1000])
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'png')
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'fig')
-print(gcf,['figures' filesep 'nbOfBilatROIsStepSNR' ],'-depsc')
+print(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'-depsc')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
