@@ -167,55 +167,55 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% brain noise
-% do not need template electrodes so do not load it
-clearvars; close all
-nbBoot = 30;
-winERP = 46:90; 
-SNRlevel = [0.1 1 10 200 10000];
-nbSbjToInclude =[2 8 20 50];
-nbModel = 6;
-% initialise variables
-aucAve = zeros(nbBoot,length(nbSbjToInclude),length(SNRlevel),nbModel);
-energyAve = aucAve;
-mseAveNorm = aucAve;
-for repBoot = 1:nbBoot
-    % load simulation results
-    fprintf('load bootstrap %d\n',repBoot)
-    load(['simulOutput/brainNoise/simulV1MTbrainNoise2win' num2str(repBoot) '.mat'])
-    for model=2:nbModel
-        for totSbj=1:length(nbSbjToInclude)
-            for level=1:length(SNRlevel)
-                [aucAve(repBoot,totSbj,level,model-1), energyAve(repBoot,totSbj,level,model-1),mseAveNorm(repBoot,totSbj,level,model-1)] = ...
-                    computeMetrics(squeeze(simulERP(totSbj,level).beta(model,:,winERP)),simulERP(totSbj,level).srcERP(:,winERP));
-            end
-        end
-    end
-end
+%%%%%%% BRAIN NOISE
+% clearvars; close all
+% nbBoot = 30;
+% winERP = 46:90; 
+% SNRlevel = [0.1 1 10 200 10000];
+% nbSbjToInclude =[2 8 20 50];
+% nbModel = 6;
+% % initialise variables
+% aucAve = zeros(nbBoot,length(nbSbjToInclude),length(SNRlevel),nbModel);
+% energyAve = aucAve;
+% mseAveNorm = aucAve;
+% for repBoot = 1:nbBoot
+%     % load simulation results
+%     fprintf('load bootstrap %d\n',repBoot)
+%     load(['simulOutput/brainNoise/simulV1MTbrainNoise2win' num2str(repBoot) '.mat'])
+%     for model=2:nbModel
+%         for totSbj=1:length(nbSbjToInclude)
+%             for level=1:length(SNRlevel)
+%                 [aucAve(repBoot,totSbj,level,model-1), energyAve(repBoot,totSbj,level,model-1),mseAveNorm(repBoot,totSbj,level,model-1)] = ...
+%                     computeMetrics(squeeze(simulERP(totSbj,level).beta(model,:,winERP)),simulERP(totSbj,level).srcERP(:,winERP));
+%             end
+%         end
+%     end
+% end
+% 
+% %%% plot metrics
+% % modName = {'templateElecNoise','template','whole','ROI','Oracle','templateBestRegul'};
+% modName = {'template','whole','ROI','Oracle','templateBestRegul'};
+% figure;hold on
+% for model=1:nbModel-1
+% for ss=1:length(nbSbjToInclude)
+%     subplot(3,nbModel-1,model);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,ss,:,model))),squeeze(std(aucAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC');
+%     title(modName(model))
+%     subplot(3,nbModel-1,model+nbModel-1);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,ss,:,model))),squeeze(std(energyAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
+%     subplot(3,nbModel-1,model+(nbModel-1)*2);hold on;
+%     errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:,model))),squeeze(std(mseAveNorm(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
+%     ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
+% end
+% end
+% legend('N=2','N=8','N=20','N=50')
+% set(gcf,'position',[100 100 1500 700])
+% saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'png')
+% saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'fig')
+% print(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'-depsc')
 
-%%% plot metrics
-% modName = {'templateElecNoise','template','whole','ROI','Oracle','templateBestRegul'};
-modName = {'template','whole','ROI','Oracle','templateBestRegul'};
-figure;hold on
-for model=1:nbModel-1
-for ss=1:length(nbSbjToInclude)
-    subplot(3,nbModel-1,model);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,ss,:,model))),squeeze(std(aucAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
-    xlabel('log(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC');
-    title(modName(model))
-    subplot(3,nbModel-1,model+nbModel-1);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,ss,:,model))),squeeze(std(energyAve(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
-    ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
-    subplot(3,nbModel-1,model+(nbModel-1)*2);hold on;
-    errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,ss,:,model))),squeeze(std(mseAveNorm(:,ss,:,model),1)),'LineWidth',2,'CapSize',0)
-    ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
-end
-end
-legend('N=2','N=8','N=20','N=50')
-set(gcf,'position',[100 100 1500 700])
-saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'png')
-saveas(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'fig')
-print(gcf,['figures' filesep 'brainNoiseV1MT_2win'],'-depsc')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % brain noise
 % do not need template electrodes so do not load it
@@ -313,53 +313,6 @@ set(gcf,'position',[100 100 1000 1000])
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'png')
 saveas(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'fig')
 print(gcf,['figures' filesep 'nbOfBilatROIsStep' ],'-depsc')
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% nb of active bilateral ROIs ERP
-clearvars; close all
-snrLevel = [1 10];
-nbBoot = 30;
-winERP = 46:90;
-modName = {'template','whole','ROI','Oracle','OracleLC','templateBestRegul'};
-figure;
-for noise=1:length(snrLevel)
-    % initialise variables
-    aucAve = zeros(nbBoot,length(modName),9);
-    energyAve = aucAve;
-    mseAveNorm = aucAve;
-    load(['simulOutput/nbROI/simulERPBilat' num2str(snrLevel(noise)) '.mat'])
-    for model=1:length(modName)
-        for repBoot=1:size(simulBilat,1)
-            for totROI=1:size(simulBilat,2)
-                [aucAve(repBoot,model,totROI), energyAve(repBoot,model,totROI),mseAveNorm(repBoot,model,totROI)] = ...
-                    computeMetrics(squeeze(simulBilat(repBoot,totROI).beta(model,:,winERP)),simulBilat(repBoot,totROI).srcERP(:,winERP));
-            end
-        end
-    end
-    for mm=[1:4 6]
-        subplot(2,3,1+3*(noise-1));hold on;
-        errorbar(2:2:18,squeeze(mean(aucAve(:,mm,:))),squeeze(std(aucAve(:,mm,:),1)),'LineWidth',2,'CapSize',0)
-        xlabel('nb of active ROI');ylabel('AUC');ylim([0 1]);xlim([0 16]);xticks(0:2:16);axis square
-        subplot(2,3,2+3*(noise-1));hold on;
-        errorbar(2:2:18,squeeze(mean(energyAve(:,mm,:))),squeeze(std(energyAve(:,mm,:),1)),'LineWidth',2,'CapSize',0)
-        ylim([0 1]);ylabel('Energy');xlim([0 16]);xticks(0:2:16);axis square
-        subplot(2,3,3+3*(noise-1));hold on;
-        errorbar(2:2:18,squeeze(mean(mseAveNorm(:,mm,:))),squeeze(std(mseAveNorm(:,mm,:),1)),'LineWidth',2,'CapSize',0)
-        ylabel('MSE');ylim([0 1]);xlim([0 16]);xticks(0:2:16);axis square
-    end
-    title(['SNR' num2str(snrLevel(noise))])
-end
-legend(modName([1:4 6]))
-set(gcf,'position',[100 100 1000 700])
-saveas(gcf,['figures' filesep 'nbOfBilatROIsERP' ],'png')
-saveas(gcf,['figures' filesep 'nbOfBilatROIsERP' ],'fig')
-print(gcf,['figures' filesep 'nbOfBilatROIsERP' ],'-depsc')
-
-
-
-
-
 
 
 
@@ -516,53 +469,6 @@ saveas(gcf,['figures' filesep 'crossTalkComparison'],'png')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% PLOT output of simulation with non-visual interfering ROI
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clearvars; close all
-nameOutput = {'simulV1MTinterference','simulV1MTinterferenceERP','simulVV2V4interferenceERP'};
-nameOut = {'interfereV1MT','interfereV1MTerp','interfereV2V4erp'};
-nbModel = 2;
-totBoot = 60;
-SNRlevel = [0.1 1 10 200 10000];
-for nn=1:length(nameOutput)
-    % initialise variables
-    aucAve = zeros(totBoot,length(SNRlevel),nbModel);
-    energyAve = aucAve;
-    mseAveNorm = aucAve;
-    clear extROI
-    for repBoot=1:totBoot
-        load(['simulOutput/interference/' nameOutput{nn} num2str(repBoot) '.mat'])
-        winERP = simulERP(1).winERP;
-        for model=1:nbModel
-            for level=1:length(SNRlevel)
-                [aucAve(repBoot,level,model), energyAve(repBoot,level,model),mseAveNorm(repBoot,level,model)] = ...
-                    computeMetrics(squeeze(simulERP(level).beta(model,:,winERP)),simulERP(level).srcERP(:,winERP));
-            end
-        end
-        extROI(repBoot) = simulERP(1).nonVisualROI;
-    end
-    %%% plot metrics
-    modName = {'template','interference'};
-    figure;hold on
-    for model=1:nbModel
-        subplot(1,3,1);hold on;
-        errorbar(log10(SNRlevel),squeeze(mean(aucAve(:,:,model))),squeeze(std(aucAve(:,:,model),1)),'LineWidth',2,'CapSize',0)
-        xlabel('log10(SNR)');ylim([0 1]);xlim([-1.5 4.5]);ylabel('AUC')
-        subplot(1,3,2);hold on;
-        errorbar(log10(SNRlevel),squeeze(mean(energyAve(:,:,model))),squeeze(std(energyAve(:,:,model),1)),'LineWidth',2,'CapSize',0)
-        ylim([0 1]);xlim([-1.5 4.5]);ylabel('Energy');
-        subplot(1,3,3);hold on;
-        errorbar(log10(SNRlevel),squeeze(mean(mseAveNorm(:,:,model))),squeeze(std(mseAveNorm(:,:,model),1)),'LineWidth',2,'CapSize',0)
-        ylabel('MSE');ylim([0 1]);xlim([-1.5 4.5]);
-    end
-    legend('template','interference');
-    set(gcf,'position',[100 100 700 300])
-    saveas(gcf,['figures' filesep nameOut{nn}],'png')
-
-%     % name of external source with resulting AUC
-%     table(extROI', aucAve(:,1,2))
-end
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% interferenceERP_Comp
 clearvars; close all
 nbModel = 6;
@@ -664,29 +570,3 @@ end
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% compare electrode vs brain noise
-% only use N=50 & 4 methods
-clearvars; close all
-nbBoot = 30;
-winERP = 46:90; 
-SNRlevel = [0.1 1 10 200 10000];
-nbModel = 4;
-% initialise variables
-aucAve = zeros(nbBoot,length(SNRlevel),nbModel);
-energyAve = aucAve;
-mseAveNorm = aucAve;
-for repBoot = 1:nbBoot
-    % load simulation results
-    fprintf('load bootstrap %d\n',repBoot)
-    load(['simulOutput/brainNoise/simulV1MTbrainNoise2win' num2str(repBoot) '.mat'])
-    for model=2:nbModel
-        for totSbj=1:length(nbSbjToInclude)
-            for level=1:length(SNRlevel)
-                [aucAve(repBoot,level,model-1), energyAve(repBoot,level,model-1),mseAveNorm(repBoot,level,model-1)] = ...
-                    computeMetrics(squeeze(simulERP(4,level).beta(model,:,winERP)),simulERP(4,level).srcERP(:,winERP));
-            end
-        end
-    end
-end
