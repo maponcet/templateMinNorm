@@ -47,7 +47,7 @@ print(gcf,'figures/averageMap50_3DturnR','-depsc')
 %%% 2D
 % location ROI for subplot
 
-for tt=7:length(listTemplates)
+for tt=1:length(listTemplates)
     clear avMap
     load([listTemplates(tt).folder '/' listTemplates(tt).name])
     listROIs = templates.listROIs;
